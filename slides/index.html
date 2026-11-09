@@ -1,0 +1,1803 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MapLibre na Prática</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --panel: #ffffff;
+    --ink: #0f172a;
+    --muted: #526077;
+    --line: #e3e7ef;
+    --accent: #2563eb;
+    --accent-soft: #e8efff;
+    --teal: #0d9488;
+    --teal-soft: #e0f5f2;
+    --amber: #d97706;
+    --amber-soft: #fff4e0;
+    --rose: #e11d48;
+    --rose-soft: #ffe8ee;
+    --violet: #7c3aed;
+    --code-bg: #0d1426;
+    --letterbox: #070b16;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: calc(min(100vw, 177.78vh) / 100); }
+  html, body { margin: 0; height: 100%; background: var(--letterbox); overflow: hidden; }
+  body { font-family: "Inter", system-ui, sans-serif; color: var(--ink); display: grid; place-items: center; }
+
+  .deck {
+    position: relative;
+    width: min(100vw, 177.78vh);
+    height: min(56.25vw, 100vh);
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .slide {
+    position: absolute; inset: 0 0 2.6rem 0;
+    padding: 3.2rem 4.2rem 2rem;
+    display: none; flex-direction: column;
+    font-size: 1.32rem; line-height: 1.5;
+  }
+  .slide.active { display: flex; animation: enter .35s ease; }
+  @keyframes enter { from { opacity: 0; transform: translateY(.6rem); } to { opacity: 1; transform: none; } }
+
+  h1, h2, h3 { margin: 0; letter-spacing: -0.02em; line-height: 1.15; }
+  h1 { font-size: 4.4rem; font-weight: 800; }
+  h2 { font-size: 2.6rem; font-weight: 800; margin-bottom: 1.6rem; }
+  h3 { font-size: 1.45rem; font-weight: 700; margin-bottom: .5rem; }
+  p { margin: 0 0 1rem; }
+  .kicker { font-size: .95rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: .7rem; }
+  .muted { color: var(--muted); }
+  .small { font-size: 1.05rem; }
+  .tiny { font-size: .9rem; }
+  code.i { font-family: "JetBrains Mono", monospace; font-size: .88em; background: var(--accent-soft); color: #1e3a8a; padding: .08em .35em; border-radius: .3em; }
+  ul.clean { list-style: none; padding: 0; margin: 0; }
+  ul.clean li { position: relative; padding-left: 1.6rem; margin-bottom: .7rem; }
+  ul.clean li::before { content: ""; position: absolute; left: .2rem; top: .62em; width: .55rem; height: .55rem; border-radius: 50%; background: var(--accent); }
+  .grow { flex: 1; min-height: 0; }
+  .row { display: flex; gap: 1.6rem; }
+  .cols-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2.2rem; }
+  .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
+  .cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; padding: 1.3rem 1.4rem; box-shadow: 0 .2rem .8rem rgba(15,23,42,.05); }
+  .card .ico { font-size: 2.1rem; line-height: 1; margin-bottom: .6rem; }
+  .card p { font-size: 1.08rem; color: var(--muted); margin: 0; }
+  .tag { display: inline-block; font-size: .8rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-right: .3rem; }
+  .tag.teal { background: var(--teal-soft); color: var(--teal); }
+  .tag.amber { background: var(--amber-soft); color: var(--amber); }
+  .tag.rose { background: var(--rose-soft); color: var(--rose); }
+  .callout { border-left: .35rem solid var(--accent); background: var(--accent-soft); padding: .9rem 1.2rem; border-radius: .6rem; font-size: 1.12rem; }
+  .callout.amber { border-color: var(--amber); background: var(--amber-soft); }
+  .callout.rose { border-color: var(--rose); background: var(--rose-soft); }
+  .callout.teal { border-color: var(--teal); background: var(--teal-soft); }
+
+  .cols-2 > table.t, .cols-3 > table.t { align-self: start; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 1.2rem; background: var(--panel); border-radius: .9rem; overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+  table.t th, table.t td { text-align: left; padding: .75rem 1.1rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.t th { background: #eef2fa; font-size: .9rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t td:first-child { font-weight: 600; white-space: nowrap; }
+  table.t code { font-family: "JetBrains Mono", monospace; font-size: .9em; color: #1e3a8a; }
+
+  /* ---------- Código ---------- */
+  .code { display: flex; flex-direction: column; min-height: 0; background: var(--code-bg); border-radius: 1rem; overflow: hidden; box-shadow: 0 .4rem 1.4rem rgba(2,6,23,.25); }
+  .code-bar { display: flex; align-items: center; gap: .4rem; padding: .55rem .7rem; background: #111a30; border-bottom: 1px solid #1d2943; }
+  .code-bar .tab { font: 600 .92rem "Inter", sans-serif; color: #93a3c4; background: transparent; border: 0; padding: .4rem .9rem; border-radius: .5rem; cursor: pointer; }
+  .code-bar .tab:hover { color: #fff; }
+  .code-bar .tab.on { background: #1f2c4b; color: #fff; }
+  .code-bar .file { margin-left: auto; font: .82rem "JetBrains Mono", monospace; color: #6b7a99; }
+  .code-bar .copy { font: 600 .8rem "Inter", sans-serif; color: #93a3c4; background: #1a2440; border: 1px solid #263357; border-radius: .45rem; padding: .3rem .6rem; cursor: pointer; }
+  .code-bar .copy:hover { color: #fff; }
+  .code pre { margin: 0; padding: 1rem 1.2rem; overflow: auto; flex: 1; min-height: 0; font-size: .9rem; line-height: 1.55; }
+  .code pre, .code code, .editor, code.i { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+  .code pre code { font: .9rem/1.55 "JetBrains Mono", monospace; background: transparent !important; padding: 0 !important; color: #dbe4ff; white-space: pre; }
+  .code .pane { display: none; flex: 1; min-height: 0; flex-direction: column; }
+  .code .pane.on { display: flex; }
+  .code .note { font-size: .82rem; color: #8ea0c6; padding: .5rem 1.2rem .7rem; border-top: 1px solid #1d2943; }
+
+  /* ---------- Mapas ---------- */
+  .map { position: relative; border-radius: 1rem; overflow: hidden; background: #dfe5ee; box-shadow: 0 .4rem 1.4rem rgba(15,23,42,.18); min-height: 0; }
+  .map .badge { position: absolute; z-index: 3; left: .8rem; top: .8rem; background: rgba(15,23,42,.82); color: #fff; font-size: .85rem; font-weight: 600; padding: .35rem .7rem; border-radius: .5rem; pointer-events: none; }
+  .map .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 1rem; z-index: 0; }
+  .maplibregl-ctrl-attrib { font-size: 11px; }
+
+  /* ---------- Demo ---------- */
+  .demo-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 1.8rem; flex: 1; min-height: 0; }
+  .demo-side { display: flex; flex-direction: column; min-height: 0; gap: .9rem; }
+  .demo-head { display: flex; align-items: center; gap: .9rem; }
+  .demo-head .big { font-size: 2.6rem; line-height: 1; }
+  .demo-head h2 { margin: 0; font-size: 2.2rem; }
+  .demo-purpose { font-size: 1.15rem; color: var(--muted); margin: 0; }
+  .demo-bullets { font-size: 1.02rem; }
+  .demo-bullets li { margin-bottom: .35rem; }
+  .demo-side .code { flex: 1; }
+
+  /* ---------- Capa ---------- */
+  .cover { padding: 0; }
+  .cover .map { position: absolute; inset: 0; border-radius: 0; box-shadow: none; }
+  .cover .veil { position: absolute; inset: 0; z-index: 2; background: linear-gradient(90deg, rgba(7,11,22,.92) 0%, rgba(7,11,22,.75) 42%, rgba(7,11,22,.05) 75%); pointer-events: none; }
+  .cover .content { position: relative; z-index: 3; color: #fff; padding: 6rem 5rem; max-width: 60%; pointer-events: none; }
+  .cover .kicker { color: #7fb0ff; }
+  .cover p { font-size: 1.6rem; color: #c9d5ef; margin-top: 1.4rem; }
+  .cover .meta { margin-top: 3rem; font-size: 1.05rem; color: #9fb0d3; }
+
+  /* ---------- Seção ---------- */
+  .section { justify-content: center; background: radial-gradient(circle at 80% 20%, #1e3a8a 0%, #0b1226 55%); color: #fff; }
+  .section .num { font-size: 7rem; font-weight: 800; color: rgba(255,255,255,.12); line-height: 1; }
+  .section h2 { font-size: 3.6rem; margin: .4rem 0 1rem; }
+  .section p { font-size: 1.5rem; color: #b8c6e6; max-width: 60%; }
+
+  /* ---------- Diagramas ---------- */
+  .pyramid { display: flex; align-items: flex-end; gap: 2.2rem; justify-content: center; }
+  .pyr { text-align: center; font-size: 1rem; color: var(--muted); }
+  .pyr .grid { display: grid; gap: 2px; background: #9fb3d9; border: 2px solid #9fb3d9; border-radius: .3rem; margin: 0 auto .6rem; }
+  .pyr .grid span { background: #dce7fb; }
+  .pyr .grid span.hit { background: var(--accent); }
+  .flow { display: flex; align-items: stretch; gap: .8rem; }
+  .flow .step { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: .9rem; padding: 1rem; text-align: center; font-size: 1.02rem; }
+  .flow .step b { display: block; font-size: 1.15rem; margin: .3rem 0; }
+  .flow .arrow { align-self: center; font-size: 1.8rem; color: var(--accent); }
+  .layer-stack { display: flex; flex-direction: column; gap: .45rem; }
+  .layer-stack div { padding: .55rem 1rem; border-radius: .55rem; font-size: 1rem; font-weight: 600; color: #fff; }
+
+  .modes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
+  .mode { background: var(--panel); border: 1px solid var(--line); border-radius: .9rem; padding: .9rem 1rem; }
+  .mode .e { font-size: 1.8rem; }
+  .mode b { display: block; font-size: 1.1rem; }
+  .mode span { font-size: .88rem; color: var(--muted); }
+
+  .agenda { counter-reset: a; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 2.4rem; }
+  .agenda div { counter-increment: a; display: flex; gap: 1rem; align-items: baseline; padding: .9rem 1.1rem; background: var(--panel); border: 1px solid var(--line); border-radius: .8rem; }
+  .agenda div::before { content: counter(a, decimal-leading-zero); font-weight: 800; color: var(--accent); font-size: 1.3rem; }
+  .agenda b { flex: 1; }
+  .agenda i { font-style: normal; color: var(--muted); font-size: 1rem; }
+
+  /* ---------- Playground ---------- */
+  .editor { flex: 1; min-height: 0; width: 100%; resize: none; border: 0; outline: 0; background: transparent; color: #dbe4ff; font: .88rem/1.55 "JetBrains Mono", monospace; padding: 1rem 1.2rem; tab-size: 2; }
+  .status { font-size: .82rem; padding: .45rem 1.2rem; border-top: 1px solid #1d2943; color: #6ee7b7; }
+  .status.err { color: #fda4af; }
+
+  .map-buttons { position: absolute; z-index: 4; left: .8rem; bottom: .8rem; display: flex; flex-wrap: wrap; gap: .45rem; max-width: 85%; }
+  .map-buttons button { font: 600 .9rem "Inter", sans-serif; border: 0; background: #fff; color: var(--ink); padding: .5rem .85rem; border-radius: .55rem; cursor: pointer; box-shadow: 0 .15rem .5rem rgba(0,0,0,.25); }
+  .map-buttons button:hover { background: var(--accent); color: #fff; }
+
+  /* ---------- Rodapé / notas ---------- */
+  .footer { position: absolute; left: 0; right: 0; bottom: 0; height: 2.6rem; display: flex; align-items: center; gap: 1.2rem; padding: 0 1.4rem; background: #0b1226; color: #93a3c4; font-size: .85rem; z-index: 20; }
+  .footer .bar { flex: 1; height: .3rem; background: #1d2943; border-radius: 99px; overflow: hidden; }
+  .footer .bar i { display: block; height: 100%; background: linear-gradient(90deg, #2563eb, #14b8a6); width: 0; transition: width .3s; }
+  .footer .sec { min-width: 14rem; color: #c3cfe9; font-weight: 600; }
+  .footer button { background: transparent; border: 0; color: #93a3c4; font-size: 1rem; cursor: pointer; padding: .2rem .5rem; }
+  .footer button:hover { color: #fff; }
+  .footer .timer { font-family: "JetBrains Mono", monospace; cursor: pointer; }
+  .notes { display: none; }
+  .notes-panel { position: absolute; left: 1.4rem; right: 1.4rem; bottom: 3.2rem; z-index: 30; background: rgba(11,18,38,.96); color: #e2e8f5; border-radius: .9rem; padding: 1rem 1.3rem; font-size: 1.05rem; line-height: 1.5; display: none; max-height: 40%; overflow: auto; box-shadow: 0 .6rem 2rem rgba(0,0,0,.4); }
+  .notes-panel.on { display: block; }
+  .notes-panel b { color: #7fb0ff; }
+  .help { position: absolute; right: 1.4rem; bottom: 3.2rem; z-index: 30; background: rgba(11,18,38,.96); color: #e2e8f5; border-radius: .9rem; padding: 1rem 1.3rem; font-size: .95rem; display: none; }
+  .help.on { display: block; }
+  .help kbd { font-family: "JetBrains Mono", monospace; background: #1f2c4b; padding: .1rem .4rem; border-radius: .3rem; }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<!-- ======================================================= 1. CAPA -->
+<section class="slide cover" data-section="Abertura">
+  <div class="map" data-map="cover"></div>
+  <div class="veil"></div>
+  <div class="content">
+    <div class="kicker">Tutorial · Mapas open source</div>
+    <h1>MapLibre<br />na Prática</h1>
+    <p>Do zero a um app de mapas para <b>Android, iOS e Web</b> — sem API key e sem pagar por mapa carregado.</p>
+    <div class="meta">Expo SDK 58 · React Native 0.88 · MapLibre React Native 11 · MapLibre GL JS</div>
+  </div>
+  <aside class="notes">Boas-vindas. O mapa ao fundo já é MapLibre rodando no navegador, com prédios 3D da Av. Paulista. Hoje: o que é, como funciona, como instalar, diferenças web × app, API e 13 demonstrações ao vivo. Use ← → para navegar, N para notas.</aside>
+</section>
+
+<!-- ======================================================= 2. ROTEIRO -->
+<section class="slide" data-section="Abertura">
+  <div class="kicker">Roteiro · 25 minutos</div>
+  <h2>O que vamos ver</h2>
+  <div class="agenda">
+    <div><b>O que é o MapLibre e por que ele existe</b><i>3 min</i></div>
+    <div><b>Como um mapa digital funciona: tiles e estilos</b><i>4 min</i></div>
+    <div><b>Web × App e instalação passo a passo</b><i>4 min</i></div>
+    <div><b>Principais componentes, funções e atributos</b><i>4 min</i></div>
+    <div><b>Demonstrações: 13 mapas com 13 finalidades</b><i>8 min</i></div>
+    <div><b>Build, armadilhas e próximos passos</b><i>2 min</i></div>
+  </div>
+  <div class="callout" style="margin-top:1.8rem">💡 Em cada demonstração: <b>mapa ao vivo à esquerda</b> e, à direita, o código que gera aquele mapa — por padrão no formato <b>📱 App (Android/iOS)</b>, com uma aba <b>🌐 Web</b> ao lado.</div>
+  <aside class="notes">Explique o formato: tudo que aparece é interativo — dá para arrastar, dar zoom e girar os mapas durante a apresentação. A aba escolhida (App/Web) vale para todos os slides.</aside>
+</section>
+
+<!-- ======================================================= 3. SEÇÃO 1 -->
+<section class="slide section" data-section="O que é">
+  <div class="num">01</div>
+  <h2>O que é o MapLibre?</h2>
+  <p>Uma família de bibliotecas open source para desenhar mapas interativos — no navegador e em apps nativos.</p>
+  <aside class="notes">Transição para a parte conceitual.</aside>
+</section>
+
+<!-- ======================================================= 4. PROBLEMA -->
+<section class="slide" data-section="O que é">
+  <div class="kicker">Motivação</div>
+  <h2>Por que não usar só o Google Maps?</h2>
+  <div class="cols-3">
+    <div class="card"><div class="ico">💳</div><h3>Custo por uso</h3><p>Serviços comerciais cobram por carregamento de mapa ou por requisição de tiles depois de uma cota gratuita.</p></div>
+    <div class="card"><div class="ico">🔑</div><h3>Chave e conta</h3><p>Exigem API key, cartão cadastrado e regras de uso que podem mudar a qualquer momento.</p></div>
+    <div class="card"><div class="ico">🔒</div><h3>Aprisionamento</h3><p>Estilo, dados e SDK amarrados a um fornecedor. Trocar depois significa reescrever o app.</p></div>
+  </div>
+  <div class="callout teal" style="margin-top:2rem">✅ <b>MapLibre:</b> o motor de renderização é livre (licença BSD). Você escolhe de onde vêm os dados — servidor próprio, provedor pago ou projetos gratuitos como <b>OpenFreeMap</b> e <b>OpenStreetMap</b>.</div>
+  <aside class="notes">Não é que Google/Mapbox sejam ruins — mas para projetos acadêmicos, ONGs e startups, custo e dependência importam. MapLibre separa o "motor" (renderização) da "gasolina" (dados).</aside>
+</section>
+
+<!-- ======================================================= 5. HISTÓRIA -->
+<section class="slide" data-section="O que é">
+  <div class="kicker">História</div>
+  <h2>Nasceu de um fork em 2020</h2>
+  <div class="flow" style="margin-bottom:2rem">
+    <div class="step">📦<b>Mapbox GL JS v1</b>Biblioteca open source (BSD), muito popular na web</div>
+    <div class="arrow">→</div>
+    <div class="step">⚖️<b>Dez/2020</b>A v2 passa a ter licença proprietária e exige conta Mapbox</div>
+    <div class="arrow">→</div>
+    <div class="step">🍴<b>Fork da v1.13</b>A comunidade cria o <b>MapLibre</b> para manter o código livre</div>
+    <div class="arrow">→</div>
+    <div class="step">🚀<b>Hoje</b>Projeto independente, com governança aberta e patrocínio de várias empresas</div>
+  </div>
+  <div class="cols-2">
+    <ul class="clean">
+      <li>O mesmo aconteceu com o <b>Mapbox GL Native</b> → <b>MapLibre Native</b> (Android, iOS, desktop).</li>
+      <li>Desde então evoluiu muito: globo 3D, terreno, renderizadores Metal e Vulkan.</li>
+    </ul>
+    <ul class="clean">
+      <li>Licença <b>BSD-3</b>: uso comercial liberado, sem royalties.</li>
+      <li>Usa a <b>MapLibre Style Spec</b>: o mesmo JSON de estilo funciona em todas as plataformas.</li>
+    </ul>
+  </div>
+  <aside class="notes">Ponto-chave: por ser um fork, quem conhece Mapbox reconhece quase toda a API. O "mesmo JSON de estilo em todas as plataformas" é o que permite nosso app compartilhar a lista de mapas entre web e celular.</aside>
+</section>
+
+<!-- ======================================================= 6. ECOSSISTEMA -->
+<section class="slide" data-section="O que é">
+  <div class="kicker">Ecossistema</div>
+  <h2>Uma família de projetos</h2>
+  <div class="cols-3">
+    <div class="card"><div class="ico">🌐</div><h3>MapLibre GL JS</h3><p>Biblioteca TypeScript para navegadores. Renderiza com WebGL. Pacote <code class="i">maplibre-gl</code>.</p></div>
+    <div class="card"><div class="ico">📱</div><h3>MapLibre Native</h3><p>Motor em C++ para Android, iOS, Linux, Windows e macOS. OpenGL, Vulkan e Metal.</p></div>
+    <div class="card"><div class="ico">⚛️</div><h3>MapLibre React Native</h3><p>Componentes React sobre o Native. Pacote <code class="i">@maplibre/maplibre-react-native</code>.</p></div>
+    <div class="card"><div class="ico">📐</div><h3>Style Spec</h3><p>Especificação do JSON de estilo: fontes, camadas, expressões. Compartilhada por todos.</p></div>
+    <div class="card"><div class="ico">🗄️</div><h3>Martin</h3><p>Servidor de tiles vetoriais (Rust) a partir de PostGIS, MBTiles e PMTiles.</p></div>
+    <div class="card"><div class="ico">🧩</div><h3>Comunidade</h3><p>Plugins, wrappers para Flutter, Compose, Swift UI e integrações com ferramentas GIS.</p></div>
+  </div>
+  <div class="callout" style="margin-top:1.6rem">Neste projeto usamos <b>React Native (Expo)</b> no celular e <b>GL JS</b> no navegador — duas portas de entrada para o mesmo motor de estilos.</div>
+  <aside class="notes">Destaque os três que usamos: GL JS (web), Native (embaixo do RN) e o wrapper React Native. Martin é mencionado para quem quiser servir seus próprios dados.</aside>
+</section>
+
+<!-- ======================================================= 7. SEÇÃO 2 -->
+<section class="slide section" data-section="Como funciona">
+  <div class="num">02</div>
+  <h2>Como um mapa digital funciona</h2>
+  <p>Tiles, fontes de dados, camadas e o Style JSON — os quatro conceitos que explicam tudo o que vem depois.</p>
+  <aside class="notes">Parte conceitual — sem isso as demos parecem mágica.</aside>
+</section>
+
+<!-- ======================================================= 8. TILES -->
+<section class="slide" data-section="Como funciona">
+  <div class="kicker">Conceito 1</div>
+  <h2>O mundo é dividido em tiles (ladrilhos)</h2>
+  <div class="cols-2 grow">
+    <div style="display:flex;flex-direction:column;gap:1.2rem;min-height:0">
+      <div class="pyramid" style="justify-content:flex-start">
+        <div class="pyr"><div class="grid" style="grid-template-columns:repeat(1,3.4rem)"><span class="hit" style="height:3.4rem"></span></div>z = 0<br /><b>1</b> tile</div>
+        <div class="pyr"><div class="grid" style="grid-template-columns:repeat(2,2.4rem)"><span style="height:2.4rem"></span><span style="height:2.4rem"></span><span class="hit" style="height:2.4rem"></span><span style="height:2.4rem"></span></div>z = 1<br /><b>4</b> tiles</div>
+        <div class="pyr"><div class="grid" style="grid-template-columns:repeat(4,1.3rem)"><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span class="hit" style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span><span style="height:1.3rem"></span></div>z = 2<br /><b>16</b> tiles</div>
+        <div class="pyr" style="font-size:2rem;color:var(--accent);align-self:center">…</div>
+        <div class="pyr"><div style="font-size:2.6rem;font-weight:800;color:var(--ink)">4<sup>z</sup></div>z = 18<br /><b>68 bilhões</b></div>
+      </div>
+      <ul class="clean">
+        <li>A cada nível de <b>zoom</b>, cada tile se divide em 4.</li>
+        <li>O app só baixa os tiles <b>visíveis na tela</b> — por isso o mapa carrega rápido.</li>
+        <li>Endereço padrão: <code class="i">…/{z}/{x}/{y}.png</code></li>
+      </ul>
+      <div class="code"><pre><code class="language-plaintext">https://tile.opentopomap.org/14/6058/9295.png
+                             │  │    └─ linha (y)
+                             │  └─ coluna (x)
+                             └─ zoom (z)</code></pre></div>
+    </div>
+    <div class="map" data-map="tiles"><div class="badge">Ao vivo: map.showTileBoundaries = true · dê zoom</div></div>
+  </div>
+  <aside class="notes">4^18 ≈ 68,7 bilhões de tiles: ninguém baixa tudo, só a janela visível. No mapa à direita, as linhas vermelhas são os limites reais dos tiles — dê zoom e veja cada quadrado se dividir em 4. O template {z}/{x}/{y} aparece em todos os estilos raster que veremos.</aside>
+</section>
+
+<!-- ======================================================= 9. RASTER VS VETOR -->
+<section class="slide" data-section="Como funciona">
+  <div class="kicker">Conceito 2</div>
+  <h2>Raster × Vetorial</h2>
+  <table class="t">
+    <tr><th></th><th>🖼️ Raster</th><th>📐 Vetorial</th></tr>
+    <tr><td>O que chega</td><td>Imagem pronta (PNG / JPG)</td><td>Geometrias + atributos (formato MVT / PBF)</td></tr>
+    <tr><td>Quem desenha</td><td>O servidor</td><td>O <b>seu aparelho</b> (GPU), em tempo real</td></tr>
+    <tr><td>Mudar cores</td><td>❌ Impossível</td><td>✅ Basta trocar o estilo</td></tr>
+    <tr><td>Girar / inclinar</td><td>Texto gira junto e fica ilegível</td><td>Rótulos sempre de pé, prédios em 3D</td></tr>
+    <tr><td>Clicar e consultar</td><td>❌ Só pixels</td><td>✅ <code>queryRenderedFeatures</code> devolve nome, tipo…</td></tr>
+    <tr><td>Exemplos hoje</td><td>Satélite, Topográfico, Ciclismo, Náutico</td><td>Ruas e Lojas, Minimalista, Noturno, Prédios 3D</td></tr>
+  </table>
+  <div class="callout amber" style="margin-top:1.4rem">O MapLibre é especialista em <b>vetorial</b>, mas também exibe raster — é assim que conseguimos usar fontes como satélite e mapas temáticos.</div>
+  <aside class="notes">Vetorial é o grande diferencial dos motores modernos. Raster continua útil para imagens (satélite) e para mapas temáticos prontos de projetos da comunidade.</aside>
+</section>
+
+<!-- ======================================================= 10. STYLE JSON -->
+<section class="slide" data-section="Como funciona">
+  <div class="kicker">Conceito 3</div>
+  <h2>O Style JSON: a receita do mapa</h2>
+  <div class="cols-2 grow">
+    <div>
+      <div class="flow" style="flex-direction:column;gap:.6rem">
+        <div class="step" style="text-align:left"><b>📦 sources</b>De onde vêm os dados: <code class="i">vector</code>, <code class="i">raster</code>, <code class="i">raster-dem</code>, <code class="i">geojson</code>, <code class="i">image</code></div>
+        <div class="step" style="text-align:left"><b>🎨 layers</b>Como desenhar, em ordem (a primeira fica embaixo): <code class="i">fill</code>, <code class="i">line</code>, <code class="i">symbol</code>, <code class="i">circle</code>, <code class="i">fill-extrusion</code>, <code class="i">raster</code>, <code class="i">hillshade</code>, <code class="i">heatmap</code>, <code class="i">background</code></div>
+        <div class="step" style="text-align:left"><b>🔤 glyphs · 🖼️ sprite</b>Fontes para os textos e a folha de ícones (lojas, ônibus, hospitais…)</div>
+      </div>
+      <p class="small muted" style="margin-top:1rem">Um estilo como o <b>Liberty</b> tem 111 camadas. Trocar o estilo = trocar a aparência inteira, sem mudar uma linha da lógica do app.</p>
+    </div>
+    <div class="layer-stack" style="justify-content:center">
+      <div style="background:#0f172a">symbol — nomes de ruas e ícones de lojas</div>
+      <div style="background:#1e3a8a">fill-extrusion — prédios 3D</div>
+      <div style="background:#2563eb">line — ruas e avenidas</div>
+      <div style="background:#0d9488">fill — água e parques</div>
+      <div style="background:#94a3b8">background — cor de fundo</div>
+      <p class="tiny muted" style="margin:.4rem 0 0;text-align:center">↑ desenhado por último &nbsp;·&nbsp; ↓ desenhado primeiro</p>
+    </div>
+  </div>
+  <aside class="notes">A pilha de camadas é como camadas do Photoshop. Próximo slide: vamos montar um estilo do zero e editá-lo ao vivo.</aside>
+</section>
+
+<!-- ======================================================= 11. PLAYGROUND -->
+<section class="slide" data-section="Como funciona">
+  <div class="kicker">Ao vivo · edite o JSON</div>
+  <h2 style="margin-bottom:1rem">Seu primeiro estilo, do zero</h2>
+  <div class="demo-grid">
+    <div class="map" data-map="playground"><div class="badge">Style JSON escrito à mão · 5 camadas</div></div>
+    <div class="demo-side">
+      <p class="demo-purpose">Experimente: troque <code class="i">#9ec7e8</code> (água) por <code class="i">#ff00aa</code>, ou mude <code class="i">line-width</code>. O mapa atualiza a cada tecla.</p>
+      <div class="code">
+        <div class="code-bar"><span class="tab on">style.json</span><span class="file">mesmo JSON no app e na web</span></div>
+        <textarea class="editor" id="playground-editor" spellcheck="false" wrap="off"></textarea>
+        <div class="status" id="playground-status">✓ Estilo válido</div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">Demonstração ao vivo: mude a cor da água para rosa e a largura das ruas. Mostra que os dados (vector tiles da OpenFreeMap) são os mesmos; só o estilo muda. Este mesmo objeto poderia ir em mapStyle={...} no app.</aside>
+</section>
+
+<!-- ======================================================= 12. EXPRESSÕES -->
+<section class="slide" data-section="Como funciona">
+  <div class="kicker">Conceito 4</div>
+  <h2>Expressões: estilo guiado pelos dados</h2>
+  <div class="cols-2 grow">
+    <div>
+      <ul class="clean">
+        <li><code class="i">["get", "campo"]</code> lê um atributo da feature.</li>
+        <li><code class="i">["match", …]</code> escolhe um valor por categoria.</li>
+        <li><code class="i">["interpolate", …]</code> varia suavemente com o zoom ou um número.</li>
+        <li><code class="i">filter</code> decide quais features entram na camada.</li>
+      </ul>
+      <div class="callout" style="margin-top:1rem">As expressões são avaliadas na GPU para cada feature, a cada quadro — funcionam igual na web e no celular.</div>
+    </div>
+    <div class="code"><pre><code class="language-typescript">// Cor do círculo conforme a categoria do ponto
+"circle-color": [
+  "match", ["get", "tipo"],
+  "museu",  "#7c3aed",
+  "parque", "#16a34a",
+  "#e11d48"            // valor padrão
+],
+
+// Largura da rua cresce com o zoom
+"line-width": [
+  "interpolate", ["linear"], ["zoom"],
+  10, 0.5,             // no zoom 10 → 0,5 px
+  18, 14               // no zoom 18 → 14 px
+],
+
+// Mostrar só os POIs de comércio
+"filter": ["==", ["get", "class"], "shop"]</code></pre></div>
+  </div>
+  <aside class="notes">Vamos usar exatamente o "match" por tipo na demo de GeoJSON mais à frente.</aside>
+</section>
+
+<!-- ======================================================= 13. FONTES GRATUITAS -->
+<section class="slide" data-section="Como funciona">
+  <div class="kicker">De onde vêm os dados</div>
+  <h2>Fontes gratuitas e sem API key</h2>
+  <table class="t">
+    <tr><th>Fonte</th><th>Tipo</th><th>O que oferece</th><th>Regras de uso</th></tr>
+    <tr><td>OpenFreeMap</td><td><span class="tag">vetorial</span></td><td>Estilos Liberty, Bright, Positron, Dark, Fiord</td><td>Gratuito, sem chave, mantido por doações</td></tr>
+    <tr><td>Esri (ArcGIS Online)</td><td><span class="tag teal">raster</span></td><td>Satélite, oceanos, National Geographic, cinza</td><td>Atribuição obrigatória; uso leve / não comercial</td></tr>
+    <tr><td>OpenTopoMap · CyclOSM · HOT</td><td><span class="tag teal">raster</span></td><td>Topográfico, ciclismo, humanitário</td><td>Servidores comunitários — uso moderado</td></tr>
+    <tr><td>OpenRailwayMap · OpenSeaMap</td><td><span class="tag teal">raster</span></td><td>Overlays de ferrovias e sinalização náutica</td><td>Servidores comunitários — uso moderado</td></tr>
+    <tr><td>AWS Terrain Tiles</td><td><span class="tag amber">raster-dem</span></td><td>Elevação do planeta (formato Terrarium)</td><td>Open Data na AWS</td></tr>
+  </table>
+  <div class="callout rose" style="margin-top:1.4rem">⚠️ Servidores comunitários são ótimos para estudo e protótipos. Para um app publicado com muitos usuários, hospede seus tiles (ex.: <b>PMTiles</b> + Martin) ou contrate um provedor.</div>
+  <aside class="notes">Todas as fontes desta tabela aparecem nas demonstrações. Sempre exiba a atribuição — o MapLibre faz isso automaticamente a partir do campo attribution de cada source.</aside>
+</section>
+
+<!-- ======================================================= 14. SEÇÃO 3 -->
+<section class="slide section" data-section="Web × App">
+  <div class="num">03</div>
+  <h2>Web × App e instalação</h2>
+  <p>Mesmo motor de estilos, duas formas de usar: imperativa no navegador e declarativa no React Native.</p>
+  <aside class="notes">Agora a parte prática.</aside>
+</section>
+
+<!-- ======================================================= 15. WEB VS APP -->
+<section class="slide" data-section="Web × App">
+  <div class="kicker">Comparativo</div>
+  <h2>Web × App: o que muda?</h2>
+  <table class="t">
+    <tr><th></th><th>🌐 Web — MapLibre GL JS</th><th>📱 App — MapLibre React Native</th></tr>
+    <tr><td>Pacote</td><td><code>maplibre-gl</code></td><td><code>@maplibre/maplibre-react-native</code> → MapLibre Native (C++)</td></tr>
+    <tr><td>Renderização</td><td>WebGL 2 no navegador</td><td>OpenGL ES ou Vulkan (Android) · Metal (iOS)</td></tr>
+    <tr><td>Estilo de API</td><td>Imperativa: <code>new Map()</code>, <code>map.addLayer()</code>, <code>map.on()</code></td><td>Declarativa: <code>&lt;Map&gt;</code>, <code>&lt;Camera&gt;</code>, <code>&lt;Layer&gt;</code></td></tr>
+    <tr><td>Instalação</td><td><code>npm</code> ou uma tag <code>&lt;script&gt;</code> da CDN</td><td>Código nativo → precisa de <b>development build</b>; não roda no Expo Go</td></tr>
+    <tr><td>Localização</td><td><code>navigator.geolocation</code> + <code>GeolocateControl</code> (exige HTTPS)</td><td>GPS nativo: <code>expo-location</code> + <code>&lt;UserLocation&gt;</code></td></tr>
+    <tr><td>Rede</td><td>Sujeito a <b>CORS</b> — o servidor de tiles precisa permitir</td><td>Sem CORS — qualquer servidor HTTP funciona</td></tr>
+    <tr><td>Distribuição</td><td>Uma URL — atualiza na hora</td><td>APK / AAB / IPA via EAS e lojas</td></tr>
+  </table>
+  <aside class="notes">Os dois pontos que mais pegam na prática: (1) o Expo Go não serve, precisa de dev build; (2) CORS na web — vamos ver isso acontecendo na demo de Transporte.</aside>
+</section>
+
+<!-- ======================================================= 16. MESMO MAPA DUAS APIS -->
+<section class="slide" data-section="Web × App">
+  <div class="kicker">Lado a lado</div>
+  <h2>O mesmo mapa nas duas APIs</h2>
+  <div class="cols-2 grow">
+    <div class="code"><div class="code-bar"><span class="tab on">📱 App — declarativo</span><span class="file">App.tsx</span></div><pre><code class="language-typescript">import { Map, Camera, UserLocation }
+  from "@maplibre/maplibre-react-native";
+
+export default function App() {
+  return (
+    &lt;Map
+      style={{ flex: 1 }}
+      mapStyle="https://tiles.openfreemap.org/styles/liberty"
+    &gt;
+      &lt;Camera initialViewState={{
+        center: [-46.63, -23.55],  // [lng, lat]
+        zoom: 14,
+      }} /&gt;
+      &lt;UserLocation /&gt;
+    &lt;/Map&gt;
+  );
+}</code></pre></div>
+    <div class="code"><div class="code-bar"><span class="tab on">🌐 Web — imperativo</span><span class="file">App.web.tsx</span></div><pre><code class="language-typescript">import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+
+const map = new maplibregl.Map({
+  container: "map",            // &lt;div id="map"&gt;
+  style: "https://tiles.openfreemap.org/styles/liberty",
+  center: [-46.63, -23.55],    // [lng, lat]
+  zoom: 14,
+});
+
+map.addControl(new maplibregl.GeolocateControl({
+  trackUserLocation: true,     // ponto azul
+}));</code></pre></div>
+  </div>
+  <div class="callout teal" style="margin-top:1rem">Nos dois casos as coordenadas são <b>[longitude, latitude]</b> — a ordem do GeoJSON. Inverter é o erro nº 1 (o mapa vai parar no oceano).</div>
+  <aside class="notes">Mesmos parâmetros, filosofias diferentes. No app, o estado do React controla o mapa; na web, você manda comandos para um objeto.</aside>
+</section>
+
+<!-- ======================================================= 17. INSTALAÇÃO WEB -->
+<section class="slide" data-section="Web × App">
+  <div class="kicker">Instalação · Web</div>
+  <h2>Na web: npm ou uma tag &lt;script&gt;</h2>
+  <div class="cols-2 grow">
+    <div class="code"><div class="code-bar"><span class="tab on">Opção A — npm (projetos com bundler)</span></div><pre><code class="language-bash">npm install maplibre-gl</code></pre>
+      <pre style="border-top:1px solid #1d2943"><code class="language-typescript">import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+
+new maplibregl.Map({
+  container: "map",
+  style: "https://tiles.openfreemap.org/styles/positron",
+  center: [-46.63, -23.55],
+  zoom: 12,
+});</code></pre></div>
+    <div class="code"><div class="code-bar"><span class="tab on">Opção B — CDN (HTML puro)</span></div><pre><code class="language-xml">&lt;link rel="stylesheet"
+  href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css"&gt;
+&lt;script
+  src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"&gt;
+&lt;/script&gt;
+
+&lt;div id="map" style="height: 100vh"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+  new maplibregl.Map({
+    container: "map",
+    style: "https://tiles.openfreemap.org/styles/liberty",
+    center: [-46.63, -23.55],
+    zoom: 12,
+  });
+&lt;/script&gt;</code></pre></div>
+  </div>
+  <div class="callout amber" style="margin-top:1rem">⚠️ A <code class="i">div</code> precisa ter altura definida, senão o mapa fica invisível. Esta apresentação usa a opção B.</div>
+  <aside class="notes">A opção B é literalmente como estes slides funcionam — abra o código-fonte da página. No nosso projeto Expo, a web usa a opção A dentro de App.web.tsx.</aside>
+</section>
+
+<!-- ======================================================= 18. INSTALAÇÃO APP -->
+<section class="slide" data-section="Web × App">
+  <div class="kicker">Instalação · App (Expo)</div>
+  <h2>No app: Expo + config plugin</h2>
+  <div class="cols-2 grow">
+    <div class="code"><div class="code-bar"><span class="tab on">Terminal</span></div><pre><code class="language-bash"># 1. Criar o projeto (TypeScript)
+npx create-expo-app@latest meu-mapa \
+  --template blank-typescript
+cd meu-mapa
+
+# 2. Instalar com versões compatíveis com o SDK
+npx expo install @maplibre/maplibre-react-native \
+  expo-location expo-dev-client
+
+# 3. Gerar e instalar o app de desenvolvimento
+npx eas-cli@latest build -p android \
+  --profile development
+
+# 4. Rodar o servidor e abrir no celular
+npx expo start</code></pre></div>
+    <div class="code"><div class="code-bar"><span class="tab on">app.json</span></div><pre><code class="language-json">{
+  "expo": {
+    "android": {
+      "package": "com.duda.maplibreapp",
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "@maplibre/maplibre-react-native",
+      ["expo-location", {
+        "locationWhenInUsePermission":
+          "Usamos sua localização para centralizar o mapa."
+      }]
+    ]
+  }
+}</code></pre></div>
+  </div>
+  <div class="callout rose" style="margin-top:1rem">🚫 <b>Expo Go não funciona</b>: o MapLibre traz código nativo. Use o <i>development build</i> (passo 3) ou gere o APK. A v11 exige a <b>Nova Arquitetura</b> do React Native (padrão no Expo SDK 52+).</div>
+  <aside class="notes">O config plugin injeta a configuração nativa (Gradle, Podfile) durante o build — você nunca edita as pastas android/ios à mão. O npx expo install resolve versões compatíveis com o SDK.</aside>
+</section>
+
+<!-- ======================================================= 19. LOCALIZAÇÃO -->
+<section class="slide" data-section="Web × App">
+  <div class="kicker">Permissões</div>
+  <h2>Localização do usuário</h2>
+  <div class="cols-2 grow">
+    <div class="code tabs-code">
+      <script type="text/plain" data-tab="app" data-file="App.tsx">import * as Location from "expo-location";
+
+const [location, setLocation] = useState<[number, number] | null>(null);
+
+useEffect(() => {
+  (async () => {
+    // 1. Pede permissão em tempo de execução (obrigatório!)
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") return; // usa um local padrão
+
+    // 2. Lê o GPS
+    const pos = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+    setLocation([pos.coords.longitude, pos.coords.latitude]);
+  })();
+}, []);
+
+// 3. No JSX: ponto azul com círculo de precisão
+<UserLocation accuracy heading /></script>
+      <script type="text/plain" data-tab="web" data-file="App.web.tsx">// O navegador pede a permissão sozinho
+const geolocate = new maplibregl.GeolocateControl({
+  positionOptions: { enableHighAccuracy: true },
+  trackUserLocation: true,   // segue o usuário
+  showAccuracyCircle: true,
+});
+map.addControl(geolocate, "bottom-right");
+
+// Centraliza assim que o mapa terminar de carregar
+map.on("load", () => geolocate.trigger());
+
+geolocate.on("geolocate", (e) => {
+  console.log(e.coords.latitude, e.coords.longitude);
+});
+
+// ⚠️ Só funciona em HTTPS (ou localhost)</script>
+    </div>
+    <div>
+      <ul class="clean">
+        <li><b>App:</b> declarar no <code class="i">app.json</code> <i>e</i> pedir em tempo de execução. Sem o pedido, o mapa abre no lugar errado.</li>
+        <li><b>Web:</b> o <code class="i">GeolocateControl</code> chama <code class="i">navigator.geolocation</code> e desenha o ponto azul.</li>
+        <li>Sempre tenha um <b>fallback</b> (ex.: centro de São Paulo) se o usuário negar.</li>
+      </ul>
+      <div class="callout" style="margin-top:1rem">No nosso app: <code class="i">getLastKnownPositionAsync()</code> primeiro (instantâneo) e depois <code class="i">getCurrentPositionAsync()</code> (preciso).</div>
+    </div>
+  </div>
+  <aside class="notes">Mostre a troca de abas App/Web aqui — a escolha vale para todos os slides seguintes.</aside>
+</section>
+
+<!-- ======================================================= 20. SEÇÃO 4 -->
+<section class="slide section" data-section="API">
+  <div class="num">04</div>
+  <h2>Componentes, funções e atributos</h2>
+  <p>As peças que você vai usar em 90% dos projetos.</p>
+  <aside class="notes">Visão geral da API.</aside>
+</section>
+
+<!-- ======================================================= 21. COMPONENTES -->
+<section class="slide" data-section="API">
+  <div class="kicker">React Native v11</div>
+  <h2>Componentes principais</h2>
+  <table class="t">
+    <tr><th>Componente</th><th>Para que serve</th><th>Equivalente na web</th></tr>
+    <tr><td><code>&lt;Map&gt;</code></td><td>A view do mapa; recebe o estilo e os eventos de toque</td><td><code>new maplibregl.Map()</code></td></tr>
+    <tr><td><code>&lt;Camera&gt;</code></td><td>Posição, zoom, inclinação, rotação e animações</td><td><code>map.flyTo()</code>, <code>map.jumpTo()</code></td></tr>
+    <tr><td><code>&lt;UserLocation&gt;</code></td><td>Ponto azul do usuário (precisão e direção)</td><td><code>GeolocateControl</code></td></tr>
+    <tr><td><code>&lt;GeoJSONSource&gt;</code></td><td>Seus dados (pontos, linhas, polígonos), com cluster</td><td><code>map.addSource(id, {type: "geojson"})</code></td></tr>
+    <tr><td><code>&lt;VectorSource&gt;</code> · <code>&lt;RasterSource&gt;</code></td><td>Tiles vetoriais ou raster adicionais</td><td><code>map.addSource()</code></td></tr>
+    <tr><td><code>&lt;Layer&gt;</code></td><td>Como desenhar uma fonte (<code>type</code>, <code>paint</code>, <code>layout</code>, <code>filter</code>)</td><td><code>map.addLayer()</code></td></tr>
+    <tr><td><code>&lt;ViewAnnotation&gt;</code> · <code>&lt;Callout&gt;</code></td><td>Componentes React posicionados no mapa</td><td><code>maplibregl.Marker</code> · <code>Popup</code></td></tr>
+    <tr><td><code>&lt;Images&gt;</code></td><td>Registra ícones para usar em camadas <code>symbol</code></td><td><code>map.addImage()</code></td></tr>
+  </table>
+  <aside class="notes">A tabela é um "dicionário" entre as duas plataformas. Na v11, o antigo MapView virou Map e os layers aceitam paint/layout iguais aos da Style Spec.</aside>
+</section>
+
+<!-- ======================================================= 22. MAP PROPS -->
+<section class="slide" data-section="API">
+  <div class="kicker">&lt;Map&gt;</div>
+  <h2>Atributos e eventos do mapa</h2>
+  <div class="cols-2 grow">
+    <table class="t">
+      <tr><th>Prop</th><th>Função</th></tr>
+      <tr><td><code>mapStyle</code></td><td>URL ou objeto do Style JSON (obrigatório)</td></tr>
+      <tr><td><code>compass</code> · <code>compassPosition</code></td><td>Bússola e sua posição</td></tr>
+      <tr><td><code>scaleBar</code></td><td>Barra de escala</td></tr>
+      <tr><td><code>logo</code> · <code>attribution</code></td><td>Logo e créditos (mantenha os créditos!)</td></tr>
+      <tr><td><code>dragPan</code> · <code>touchZoom</code></td><td>Liga/desliga arrastar e pinça</td></tr>
+      <tr><td><code>touchRotate</code> · <code>touchPitch</code></td><td>Liga/desliga girar e inclinar</td></tr>
+      <tr><td><code>contentInset</code></td><td>Margem para menus sobre o mapa</td></tr>
+    </table>
+    <div style="display:flex;flex-direction:column;gap:1rem;min-height:0">
+      <table class="t">
+        <tr><th>Evento</th><th>Quando dispara</th></tr>
+        <tr><td><code>onPress</code> · <code>onLongPress</code></td><td>Toque no mapa (lng/lat e pixel)</td></tr>
+        <tr><td><code>onRegionDidChange</code></td><td>Usuário terminou de mover o mapa</td></tr>
+        <tr><td><code>onDidFinishLoadingStyle</code></td><td>Estilo carregado — seguro adicionar camadas</td></tr>
+        <tr><td><code>onDidFailLoadingMap</code></td><td>Erro de rede ou estilo inválido</td></tr>
+      </table>
+      <div class="callout tiny">Via <code class="i">ref</code>: <code class="i">getCenter()</code>, <code class="i">getZoom()</code>, <code class="i">getBounds()</code>, <code class="i">queryRenderedFeatures()</code>, <code class="i">project()</code> / <code class="i">unproject()</code>, <code class="i">createStaticMapImage()</code>.</div>
+    </div>
+  </div>
+  <aside class="notes">Na web os equivalentes são opções do construtor (dragPan, touchZoomRotate…) e eventos via map.on("click" | "moveend" | "load" | "error").</aside>
+</section>
+
+<!-- ======================================================= 23. CAMERA -->
+<section class="slide" data-section="API">
+  <div class="kicker">&lt;Camera&gt;</div>
+  <h2>A câmera: para onde o mapa olha</h2>
+  <div class="cols-2 grow">
+    <div>
+      <div class="cols-2" style="gap:1rem">
+        <div class="card"><h3>📍 center</h3><p><code class="i">[lng, lat]</code> do centro da tela</p></div>
+        <div class="card"><h3>🔍 zoom</h3><p>0 (planeta) até ~22 (sala de estar)</p></div>
+        <div class="card"><h3>📐 pitch</h3><p>Inclinação: 0° = de cima, 60° = perspectiva</p></div>
+        <div class="card"><h3>🧭 bearing</h3><p>Rotação em graus: 0 = norte para cima</p></div>
+      </div>
+      <ul class="clean small" style="margin-top:1.2rem">
+        <li><code class="i">initialViewState</code>: posição inicial, sem "prender" a câmera.</li>
+        <li><code class="i">trackUserLocation</code>: <code class="i">"default"</code>, <code class="i">"heading"</code> ou <code class="i">"course"</code> — segue o usuário.</li>
+        <li><code class="i">minZoom</code>, <code class="i">maxZoom</code>, <code class="i">maxBounds</code>: limites.</li>
+      </ul>
+    </div>
+    <div class="code tabs-code">
+      <script type="text/plain" data-tab="app" data-file="App.tsx">const camera = useRef<CameraRef>(null);
+
+<Camera
+  ref={camera}
+  initialViewState={{ center: [-46.63, -23.55], zoom: 14 }}
+/>
+
+// Animações pelo ref
+camera.current?.flyTo({ center: [-43.18, -22.95], zoom: 12 });
+camera.current?.easeTo({ center, zoom: 16, duration: 500 });
+camera.current?.fitBounds([[-47, -24], [-46, -23]]);
+camera.current?.zoomTo(10);
+
+// Muda só inclinação/zoom, mantendo o centro
+camera.current?.setStop({ pitch: 60, zoom: 17, duration: 800 });</script>
+      <script type="text/plain" data-tab="web" data-file="App.web.tsx">const map = new maplibregl.Map({
+  container: "map",
+  style: STYLE,
+  center: [-46.63, -23.55],
+  zoom: 14,
+  pitch: 0,
+  bearing: 0,
+});
+
+// Animações
+map.flyTo({ center: [-43.18, -22.95], zoom: 12 });
+map.easeTo({ center, zoom: 16, duration: 500 });
+map.fitBounds([[-47, -24], [-46, -23]]);
+map.zoomTo(10);
+
+// Muda só inclinação/zoom, mantendo o centro
+map.easeTo({ pitch: 60, zoom: 17, duration: 800 });</script>
+    </div>
+  </div>
+  <aside class="notes">flyTo faz o efeito "avião": afasta, viaja e aproxima. easeTo é uma transição direta. Vamos ver os dois em ação na demo de câmera.</aside>
+</section>
+
+<!-- ======================================================= 24. WEB API -->
+<section class="slide" data-section="API">
+  <div class="kicker">GL JS</div>
+  <h2>As funções mais usadas na web</h2>
+  <div class="cols-3">
+    <div class="card"><h3>🗺️ Estilo e dados</h3><p><code class="i">setStyle()</code> troca o mapa inteiro<br /><code class="i">addSource()</code> · <code class="i">addLayer()</code><br /><code class="i">setPaintProperty()</code><br /><code class="i">setFilter()</code><br /><code class="i">getSource(id).setData()</code></p></div>
+    <div class="card"><h3>🎥 Câmera</h3><p><code class="i">flyTo()</code> · <code class="i">easeTo()</code> · <code class="i">jumpTo()</code><br /><code class="i">fitBounds()</code><br /><code class="i">rotateTo()</code><br /><code class="i">getCenter()</code> · <code class="i">getZoom()</code><br /><code class="i">setTerrain()</code> (relevo 3D)</p></div>
+    <div class="card"><h3>👆 Interação</h3><p><code class="i">on("load")</code><br /><code class="i">on("click", camada, fn)</code><br /><code class="i">on("moveend")</code><br /><code class="i">queryRenderedFeatures()</code><br /><code class="i">new Popup()</code> · <code class="i">new Marker()</code></p></div>
+  </div>
+  <div class="cols-4" style="margin-top:1.4rem">
+    <div class="card"><h3>NavigationControl</h3><p>Zoom + bússola</p></div>
+    <div class="card"><h3>GeolocateControl</h3><p>Ponto azul do usuário</p></div>
+    <div class="card"><h3>ScaleControl</h3><p>Barra de escala</p></div>
+    <div class="card"><h3>FullscreenControl</h3><p>Tela cheia</p></div>
+  </div>
+  <aside class="notes">Controles são adicionados com map.addControl(controle, posição). Nos mapas desta apresentação você vê o NavigationControl no canto superior direito.</aside>
+</section>
+
+<!-- ======================================================= 25. SEÇÃO 5 -->
+<section class="slide section" data-section="Demonstrações">
+  <div class="num">05</div>
+  <h2>Demonstrações</h2>
+  <p>13 mapas com 13 finalidades — todos ao vivo, todos com o código ao lado.</p>
+  <aside class="notes">Lembre: dá para interagir com cada mapa. A aba App/Web vale para todas as demos.</aside>
+</section>
+
+<!-- ======================================================= 26. VISÃO GERAL -->
+<section class="slide" data-section="Demonstrações">
+  <div class="kicker">Catálogo</div>
+  <h2>Os 13 mapas do nosso app</h2>
+  <div class="modes" id="modes-grid"></div>
+  <div class="callout" style="margin-top:1.4rem">Todos vivem em <code class="i">mapModes.ts</code> — uma lista compartilhada por <code class="i">App.tsx</code> (Android/iOS) e <code class="i">App.web.tsx</code> (navegador).</div>
+  <aside class="notes">Visão geral antes das demos individuais. Azul = vetorial (desenhado no aparelho), verde = raster (imagem pronta).</aside>
+</section>
+
+<!-- Demos geradas por JavaScript são inseridas aqui -->
+<div id="demo-anchor" hidden></div>
+
+<!-- ======================================================= CÂMERA AO VIVO -->
+<section class="slide" data-section="Demonstrações">
+  <div class="demo-grid">
+    <div class="map" data-map="camera">
+      <div class="badge">Clique nos botões ↓</div>
+      <div class="map-buttons">
+        <button data-fly="sp">São Paulo</button>
+        <button data-fly="rio">Rio de Janeiro</button>
+        <button data-fly="bsb">Brasília</button>
+        <button data-fly="tilt">Inclinar 3D</button>
+        <button data-fly="spin">Girar 180°</button>
+        <button data-fly="reset">Vista de cima</button>
+      </div>
+    </div>
+    <div class="demo-side">
+      <div class="demo-head"><span class="big">🎥</span><div><span class="tag">Interatividade</span><h2>Câmera em ação</h2></div></div>
+      <p class="demo-purpose">Animações de câmera para guiar o usuário: voar até um lugar, inclinar para 3D e girar.</p>
+      <div class="code tabs-code">
+        <script type="text/plain" data-tab="app" data-file="CameraDemo.tsx">import { useRef } from "react";
+import { Button, View } from "react-native";
+import { Map, Camera, type CameraRef } from "@maplibre/maplibre-react-native";
+
+export default function CameraDemo() {
+  const camera = useRef<CameraRef>(null);
+
+  const irPara = (center: [number, number]) =>
+    camera.current?.flyTo({ center, zoom: 12, duration: 4000 });
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Map style={{ flex: 1 }}
+        mapStyle="https://tiles.openfreemap.org/styles/liberty">
+        <Camera ref={camera}
+          initialViewState={{ center: [-46.6339, -23.5503], zoom: 11 }} />
+      </Map>
+
+      <Button title="Rio de Janeiro"
+        onPress={() => irPara([-43.1729, -22.9068])} />
+      <Button title="Brasília"
+        onPress={() => irPara([-47.8645, -15.7998])} />
+      <Button title="Inclinar 3D"
+        onPress={() => camera.current?.setStop({ pitch: 60, zoom: 16, duration: 1500 })} />
+      <Button title="Vista de cima"
+        onPress={() => camera.current?.setStop({ pitch: 0, bearing: 0, duration: 1000 })} />
+    </View>
+  );
+}</script>
+        <script type="text/plain" data-tab="web" data-file="camera.js">const map = new maplibregl.Map({
+  container: "map",
+  style: "https://tiles.openfreemap.org/styles/liberty",
+  center: [-46.6339, -23.5503],
+  zoom: 11,
+});
+
+// Voa até o Rio (afasta → viaja → aproxima)
+map.flyTo({ center: [-43.1729, -22.9068], zoom: 12, duration: 4000 });
+
+// Inclina para ver os prédios em 3D
+map.easeTo({ pitch: 60, zoom: 16, duration: 1500 });
+
+// Gira 180° em relação à rotação atual
+map.rotateTo(map.getBearing() + 180, { duration: 3000 });
+
+// Volta para a vista de cima
+map.easeTo({ pitch: 0, bearing: 0, duration: 1000 });</script>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">Clique em Rio, depois Brasília: veja a curva do flyTo. Depois "Inclinar 3D" em São Paulo e "Girar".</aside>
+</section>
+
+<!-- ======================================================= GEOJSON AO VIVO -->
+<section class="slide" data-section="Demonstrações">
+  <div class="demo-grid">
+    <div class="map" data-map="geojson"><div class="badge">Clique em um ponto 👆</div></div>
+    <div class="demo-side">
+      <div class="demo-head"><span class="big">📌</span><div><span class="tag rose">Seus dados</span><h2>GeoJSON + camadas</h2></div></div>
+      <p class="demo-purpose">Pontos próprios sobre uma base neutra, coloridos por categoria com <code class="i">match</code> e com clique.</p>
+      <div class="code tabs-code">
+        <script type="text/plain" data-tab="app" data-file="MeusPontos.tsx">import { Alert } from "react-native";
+import { Map, Camera, GeoJSONSource, Layer } from "@maplibre/maplibre-react-native";
+import { PONTOS } from "./pontos"; // GeoJSON FeatureCollection
+
+export default function MeusPontos() {
+  return (
+    <Map style={{ flex: 1 }}
+      mapStyle="https://tiles.openfreemap.org/styles/positron">
+      <Camera initialViewState={{ center: [-46.645, -23.556], zoom: 12.6 }} />
+
+      <GeoJSONSource
+        id="pontos"
+        data={PONTOS}
+        onPress={(e) => {
+          const p = e.nativeEvent.features[0]?.properties;
+          if (p) Alert.alert(p.nome, p.tipo);
+        }}
+      >
+        <Layer id="pontos-circulo" type="circle" paint={{
+          "circle-radius": 9,
+          "circle-color": ["match", ["get", "tipo"],
+            "museu", "#7c3aed", "parque", "#16a34a",
+            "mercado", "#d97706", "#e11d48"],
+          "circle-stroke-width": 3,
+          "circle-stroke-color": "#ffffff",
+        }} />
+        <Layer id="pontos-nome" type="symbol"
+          layout={{
+            "text-field": ["get", "nome"],
+            "text-font": ["Noto Sans Bold"],
+            "text-size": 13,
+            "text-offset": [0, 1.2],
+            "text-anchor": "top",
+          }}
+          paint={{ "text-halo-color": "#ffffff", "text-halo-width": 2 }} />
+      </GeoJSONSource>
+    </Map>
+  );
+}</script>
+        <script type="text/plain" data-tab="web" data-file="pontos.js">map.on("load", () => {
+  map.addSource("pontos", { type: "geojson", data: PONTOS });
+
+  map.addLayer({
+    id: "pontos-circulo", type: "circle", source: "pontos",
+    paint: {
+      "circle-radius": 9,
+      "circle-color": ["match", ["get", "tipo"],
+        "museu", "#7c3aed", "parque", "#16a34a",
+        "mercado", "#d97706", "#e11d48"],
+      "circle-stroke-width": 3,
+      "circle-stroke-color": "#ffffff",
+    },
+  });
+
+  map.addLayer({
+    id: "pontos-nome", type: "symbol", source: "pontos",
+    layout: {
+      "text-field": ["get", "nome"],
+      "text-font": ["Noto Sans Bold"],
+      "text-size": 13,
+      "text-offset": [0, 1.2],
+      "text-anchor": "top",
+    },
+    paint: { "text-halo-color": "#ffffff", "text-halo-width": 2 },
+  });
+
+  // Clique em um ponto → popup
+  map.on("click", "pontos-circulo", (e) => {
+    const p = e.features[0].properties;
+    new maplibregl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(`<b>${p.nome}</b><br>${p.tipo}`)
+      .addTo(map);
+  });
+  map.on("mouseenter", "pontos-circulo", () => {
+    map.getCanvas().style.cursor = "pointer";
+  });
+});</script>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">Aqui juntamos tudo: fonte GeoJSON, duas camadas (círculo e texto), expressão match e evento de clique. Clique no MASP ou no Ibirapuera.</aside>
+</section>
+
+<!-- ======================================================= SEÇÃO 6 -->
+<section class="slide section" data-section="Fechamento">
+  <div class="num">06</div>
+  <h2>Do código ao celular</h2>
+  <p>Como o projeto está organizado, como gerar o APK e as armadilhas que encontramos no caminho.</p>
+  <aside class="notes">Reta final.</aside>
+</section>
+
+<!-- ======================================================= ARQUITETURA -->
+<section class="slide" data-section="Fechamento">
+  <div class="kicker">Arquitetura do projeto</div>
+  <h2>Um catálogo, duas implementações</h2>
+  <div class="cols-2 grow" style="align-items:start">
+    <div class="flow" style="flex-direction:column;gap:.7rem">
+      <div class="step" style="text-align:left;border-color:var(--accent)"><b>📄 mapModes.ts</b>Lista dos 13 mapas: <code class="i">id</code>, <code class="i">label</code>, <code class="i">mapStyle</code>, <code class="i">pitch</code>, <code class="i">web</code> (fallback)</div>
+      <div class="row">
+        <div class="step" style="text-align:left;flex:1"><b>📱 App.tsx</b>Android + iOS<br /><code class="i">&lt;Map&gt;</code> · <code class="i">&lt;Camera&gt;</code> · <code class="i">&lt;UserLocation&gt;</code> · <code class="i">expo-location</code></div>
+        <div class="step" style="text-align:left;flex:1"><b>🌐 App.web.tsx</b>Navegador<br /><code class="i">new maplibregl.Map()</code> · <code class="i">GeolocateControl</code></div>
+      </div>
+      <div class="step" style="text-align:left"><b>⚙️ app.json · eas.json</b>Config plugins, permissões e perfis de build (APK, iOS, simulador)</div>
+    </div>
+    <div class="code"><div class="code-bar"><span class="tab on">mapModes.ts</span></div><pre><code class="language-typescript">export type MapMode = {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+  mapStyle: string | StyleSpecification;
+  pitch?: number;   // ex.: 60 nos Prédios 3D
+  zoom?: number;
+  dark?: boolean;
+  // Alternativa só para a web (ex.: servidor sem CORS)
+  web?: { mapStyle: string | StyleSpecification;
+          description: string };
+};
+
+// O Metro escolhe o arquivo pela plataforma:
+//   App.tsx      → Android / iOS
+//   App.web.tsx  → navegador</code></pre></div>
+  </div>
+  <aside class="notes">A extensão .web.tsx é resolvida automaticamente pelo Metro. Assim cada plataforma usa a biblioteca certa sem if/else espalhado pelo código.</aside>
+</section>
+
+<!-- ======================================================= BUILD -->
+<section class="slide" data-section="Fechamento">
+  <div class="kicker">Build e distribuição</div>
+  <h2>Gerando o APK na nuvem com EAS</h2>
+  <div class="cols-2 grow">
+    <div class="code"><div class="code-bar"><span class="tab on">Terminal</span></div><pre><code class="language-bash"># Login na conta gratuita do expo.dev
+npx eas-cli@latest login
+
+# Só na primeira vez
+npx eas-cli@latest build:configure
+
+# 📱 APK para instalar direto no Android
+npx eas-cli@latest build -p android --profile preview
+
+# 🍎 iOS no simulador (ou --profile preview
+#    com conta Apple Developer)
+npx eas-cli@latest build -p ios --profile ios-simulator
+
+# 🌐 Versão web estática (pasta dist/)
+npx expo export -p web</code></pre></div>
+    <div class="code"><div class="code-bar"><span class="tab on">eas.json</span></div><pre><code class="language-json">{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
+    },
+    "ios-simulator": {
+      "extends": "preview",
+      "ios": { "simulator": true }
+    }
+  }
+}</code></pre></div>
+  </div>
+  <div class="callout teal" style="margin-top:1rem">Ao terminar (~10–20 min), o EAS mostra um link e um QR code: abra no celular, baixe o <code class="i">.apk</code> e instale. Não precisa de Android Studio.</div>
+  <aside class="notes">Use npx eas-cli@latest em vez de npm install -g para evitar o erro EACCES em Linux. O perfil production gera .aab para a Play Store.</aside>
+</section>
+
+<!-- ======================================================= ARMADILHAS -->
+<section class="slide" data-section="Fechamento">
+  <div class="kicker">Lições aprendidas</div>
+  <h2>Armadilhas que encontramos</h2>
+  <div class="cols-3">
+    <div class="card"><div class="ico">📵</div><h3>Expo Go</h3><p>O app fecha ou não mostra o mapa. MapLibre tem código nativo → use development build ou APK.</p></div>
+    <div class="card"><div class="ico">🧱</div><h3>Nova Arquitetura</h3><p>MapLibre RN v11 exige a New Architecture. Use Expo SDK 52 ou mais novo.</p></div>
+    <div class="card"><div class="ico">⚙️</div><h3>Worker da GL JS v6</h3><p>"Worker failed to load" no Metro. Solução: servir o worker por <code class="i">public/</code> e chamar <code class="i">setWorkerUrl()</code>.</p></div>
+    <div class="card"><div class="ico">🚧</div><h3>CORS na web</h3><p>Servidor sem <code class="i">Access-Control-Allow-Origin</code> → tiles bloqueados. No app funciona. Solução: fallback por plataforma.</p></div>
+    <div class="card"><div class="ico">🔐</div><h3>EACCES no npm -g</h3><p>Instalar global exige root no Linux. Use <code class="i">npx eas-cli@latest</code> ou mude o prefixo do npm.</p></div>
+    <div class="card"><div class="ico">↔️</div><h3>[lng, lat]</h3><p>A ordem é longitude, latitude. Invertido, o mapa abre no meio do oceano.</p></div>
+  </div>
+  <aside class="notes">Todas essas aconteceram de verdade durante o desenvolvimento deste app — vale contar a história de cada uma.</aside>
+</section>
+
+<!-- ======================================================= FIM -->
+<section class="slide section" data-section="Fechamento">
+  <div class="num">✓</div>
+  <h2>Obrigado! Perguntas?</h2>
+  <div class="cols-2" style="max-width:80%;margin-top:1rem">
+    <ul class="clean" style="color:#c9d5ef">
+      <li><b style="color:#fff">maplibre.org</b> — documentação e exemplos</li>
+      <li><b style="color:#fff">maplibre.org/maplibre-style-spec</b> — Style Spec</li>
+      <li><b style="color:#fff">openfreemap.org</b> — tiles vetoriais grátis</li>
+    </ul>
+    <ul class="clean" style="color:#c9d5ef">
+      <li><b style="color:#fff">github.com/maplibre/maplibre-react-native</b></li>
+      <li><b style="color:#fff">docs.expo.dev</b> — Expo e EAS Build</li>
+      <li><b style="color:#fff">openstreetmap.org</b> — contribua com os dados!</li>
+    </ul>
+  </div>
+  <aside class="notes">Resumo: MapLibre = motor livre; dados você escolhe; mesmo estilo em web e app; Expo + EAS para gerar o APK sem Android Studio.</aside>
+</section>
+
+<!-- ======================================================= UI -->
+<div class="notes-panel" id="notes"></div>
+<div class="help" id="help">
+  <div><kbd>←</kbd> <kbd>→</kbd> / <kbd>Espaço</kbd> navegar</div>
+  <div><kbd>N</kbd> notas do apresentador</div>
+  <div><kbd>F</kbd> tela cheia</div>
+  <div><kbd>A</kbd> / <kbd>W</kbd> código App / Web</div>
+  <div><kbd>T</kbd> zerar cronômetro</div>
+  <div><kbd>Home</kbd> / <kbd>End</kbd> início / fim</div>
+</div>
+<div class="footer">
+  <span class="sec" id="sec">—</span>
+  <button id="prev" title="Anterior">‹</button>
+  <div class="bar"><i id="bar"></i></div>
+  <button id="next" title="Próximo">›</button>
+  <span id="count">1 / 1</span>
+  <span class="timer" id="timer" title="Clique para zerar">00:00</span>
+  <button id="help-btn" title="Atalhos">?</button>
+</div>
+</div>
+
+<script>
+/* =====================================================================
+   DADOS DAS DEMONSTRAÇÕES — o mesmo catálogo de mapModes.ts
+   ===================================================================== */
+const OFM = "https://tiles.openfreemap.org/styles";
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+const OSM = "© OpenStreetMap contributors";
+const GLYPHS = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
+const abc = (tpl, subs = ["a", "b", "c"]) => subs.map((s) => tpl.replace("{s}", s));
+
+// Mesmo helper de mapModes.ts
+function rasterStyle(layers) {
+  const sources = {};
+  for (const l of layers) {
+    sources[l.id] = { type: "raster", tiles: l.tiles, tileSize: l.tileSize ?? 256, maxzoom: l.maxzoom ?? 19, attribution: l.attribution };
+  }
+  return {
+    version: 8,
+    glyphs: GLYPHS,
+    sources,
+    layers: [
+      { id: "bg", type: "background", paint: { "background-color": "#e8e8e8" } },
+      ...layers.map((l) => ({ id: l.id, type: "raster", source: l.id })),
+    ],
+  };
+}
+
+const RELIEF_STYLE = {
+  version: 8,
+  glyphs: GLYPHS,
+  sources: {
+    dem: {
+      type: "raster-dem",
+      tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+      encoding: "terrarium",
+      tileSize: 256,
+      maxzoom: 15,
+      attribution: "Elevação: Mapzen / AWS Terrain Tiles",
+    },
+    labels: {
+      type: "raster",
+      tiles: [`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`],
+      tileSize: 256,
+      attribution: "© Esri",
+    },
+  },
+  layers: [
+    { id: "bg", type: "background", paint: { "background-color": "#f4f1ea" } },
+    {
+      id: "hillshade",
+      type: "hillshade",
+      source: "dem",
+      paint: {
+        "hillshade-exaggeration": 0.8,
+        "hillshade-shadow-color": "#473B24",
+        "hillshade-highlight-color": "#ffffff",
+      },
+    },
+    { id: "labels", type: "raster", source: "labels" },
+  ],
+};
+
+const DEMOS = [
+  {
+    id: "streets", label: "Ruas e Lojas", icon: "🏪", kind: "vetorial", source: "OpenFreeMap · Liberty",
+    purpose: "Navegação urbana: ruas, números, comércio, restaurantes e pontos de interesse.",
+    bullets: [
+      "Tiles <b>vetoriais</b>: textos e ícones são desenhados no aparelho — nítidos em qualquer zoom.",
+      "A camada <code class='i'>poi</code> traz lojas, farmácias, bancos, restaurantes…",
+      "A mesma URL funciona no app e na web, sem API key.",
+    ],
+    style: { url: `${OFM}/liberty` },
+    view: { center: [-46.6365, -23.5475], zoom: 16.2 },
+    notes: "Dê zoom e mostre os ícones de lojas e os números das casas. Tudo isso vem dos dados do OpenStreetMap.",
+  },
+  {
+    id: "minimal", label: "Minimalista", icon: "🤍", kind: "vetorial", source: "OpenFreeMap · Positron",
+    purpose: "Base limpa e neutra para destacar os SEUS dados por cima — pontos, rotas e mapas de calor.",
+    bullets: [
+      "Mesmos dados do Liberty: só o Style JSON muda.",
+      "Menos ruído visual = leitura mais rápida.",
+      "Ideal com <code class='i'>GeoJSONSource</code> (veja a demo de pontos).",
+    ],
+    style: { url: `${OFM}/positron` },
+    view: { center: [-46.6388, -23.5558], zoom: 12.5 },
+    notes: "Compare com o slide anterior: mesma cidade, mesmos dados, outra receita.",
+  },
+  {
+    id: "night", label: "Noturno", icon: "🌙", kind: "vetorial", source: "OpenFreeMap · Dark",
+    purpose: "Uso à noite ou no modo escuro do sistema: menos brilho e mais conforto.",
+    bullets: [
+      "Trocar de tema = trocar uma string. Zero mudança na lógica.",
+      "No app: combine com <code class='i'>useColorScheme()</code>.",
+      "Na web: combine com <code class='i'>prefers-color-scheme</code>.",
+    ],
+    style: { url: `${OFM}/dark` },
+    view: { center: [-46.6388, -23.5558], zoom: 13 },
+    notes: "Bom momento para falar de acessibilidade e conforto visual.",
+  },
+  {
+    id: "buildings3d", label: "Prédios 3D", icon: "🏙️", kind: "vetorial", source: "OpenFreeMap · Liberty + pitch",
+    purpose: "Visualização urbana em perspectiva: altura real dos edifícios com a câmera inclinada.",
+    bullets: [
+      "Camada <code class='i'>fill-extrusion</code> usa a altura dos prédios cadastrada no OSM.",
+      "<code class='i'>pitch</code> inclina a câmera; <code class='i'>bearing</code> gira.",
+      "Na tela: botão direito + arrastar (web) ou dois dedos (app) para girar.",
+    ],
+    style: { url: `${OFM}/liberty` },
+    view: { center: [-46.6555, -23.5625], zoom: 16.3, pitch: 60, bearing: -30 },
+    notes: "Av. Paulista. Gire com o botão direito do mouse para mostrar o efeito 3D.",
+  },
+  {
+    id: "satellite", label: "Satélite", icon: "🛰️", kind: "raster", source: "Esri World Imagery",
+    purpose: "Ver o terreno real: telhados, vegetação, praias — com ruas e nomes por cima.",
+    bullets: [
+      "Três camadas <b>raster</b> empilhadas: imagem → ruas → rótulos.",
+      "Raster é imagem pronta: não dá para mudar cores nem consultar POIs.",
+      "Atribuição da Esri é obrigatória (o MapLibre exibe sozinho).",
+    ],
+    style: {
+      raster: [
+        { id: "imagery", tiles: [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri, Maxar, Earthstar Geographics" },
+        { id: "roads", tiles: [`${ESRI}/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri" },
+        { id: "labels", tiles: [`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri" },
+      ],
+    },
+    view: { center: [-43.1729, -22.9555], zoom: 13.6 },
+    notes: "Rio de Janeiro: Pão de Açúcar e Botafogo. Note que é um estilo montado à mão com rasterStyle().",
+  },
+  {
+    id: "topo", label: "Topográfico", icon: "⛰️", kind: "raster", source: "OpenTopoMap",
+    purpose: "Trilhas, montanhismo e engenharia: curvas de nível, altitudes e caminhos.",
+    bullets: [
+      "<code class='i'>maxzoom: 17</code>: acima disso o MapLibre amplia o último nível (overzoom).",
+      "Subdomínios <code class='i'>a/b/c</code> distribuem as requisições.",
+      "Dados do OSM + elevação SRTM.",
+    ],
+    style: {
+      raster: [
+        { id: "opentopo", tiles: abc("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"), attribution: `${OSM}, SRTM | © OpenTopoMap (CC-BY-SA)`, maxzoom: 17 },
+      ],
+    },
+    view: { center: [-45.585, -22.735], zoom: 12.5 },
+    notes: "Campos do Jordão, Serra da Mantiqueira. Mostre as curvas de nível.",
+  },
+  {
+    id: "relief", label: "Relevo", icon: "🗻", kind: "raster-dem", source: "AWS Terrain Tiles + hillshade",
+    purpose: "Entender o terreno: serras, vales e morros sombreados a partir de dados de elevação.",
+    bullets: [
+      "Fonte <code class='i'>raster-dem</code>: cada pixel guarda uma altitude (Terrarium).",
+      "A camada <code class='i'>hillshade</code> calcula as sombras <b>no aparelho</b> — cor e intensidade são editáveis.",
+      "Na web dá para ir além: <code class='i'>map.setTerrain()</code> cria relevo 3D.",
+    ],
+    style: { object: RELIEF_STYLE },
+    view: { center: [-43.25, -22.93], zoom: 10.6 },
+    notes: "Rio de Janeiro: maciço da Tijuca, Pedra Branca e Serra do Mar. É o único estilo 'semi-vetorial': os dados são raster, mas o desenho é calculado na GPU.",
+  },
+  {
+    id: "explorer", label: "Explorador", icon: "🧭", kind: "raster", source: "Esri · National Geographic",
+    purpose: "Turismo e educação: cartografia editorial com parques, reservas e relevo.",
+    bullets: [
+      "Estilo clássico da National Geographic.",
+      "Destaca unidades de conservação e nomes geográficos.",
+      "<code class='i'>maxzoom: 16</code> — é um mapa de visão regional.",
+    ],
+    style: {
+      raster: [
+        { id: "natgeo", tiles: [`${ESRI}/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri, National Geographic, Garmin, HERE", maxzoom: 16 },
+      ],
+    },
+    view: { center: [-54.35, -25.62], zoom: 9.3 },
+    notes: "Parque Nacional do Iguaçu e a tríplice fronteira.",
+  },
+  {
+    id: "cycling", label: "Ciclismo", icon: "🚲", kind: "raster", source: "CyclOSM",
+    purpose: "Planejar pedaladas: ciclovias, ciclofaixas, bicicletários e oficinas.",
+    bullets: [
+      "Gerado a partir das tags do OSM (<code class='i'>cycleway=*</code>).",
+      "Cores indicam o tipo de infraestrutura cicloviária.",
+      "Contribuir no OpenStreetMap melhora este mapa para todos.",
+    ],
+    style: {
+      raster: [
+        { id: "cyclosm", tiles: abc("https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"), attribution: `${OSM} | CyclOSM`, maxzoom: 20 },
+      ],
+    },
+    view: { center: [-46.664, -23.578], zoom: 14.2 },
+    notes: "Região da Paulista e do Ibirapuera. Mostre as ciclovias em azul.",
+  },
+  {
+    id: "transit", label: "Transporte", icon: "🚌", kind: "raster", source: "ÖPNVKarte (app) · Liberty (web)", cors: true,
+    purpose: "Mobilidade urbana: linhas de ônibus, metrô, trem e paradas.",
+    bullets: [
+      "<b>No app:</b> ÖPNVKarte, com cada linha colorida.",
+      "<b>No navegador:</b> o servidor não envia <code class='i'>Access-Control-Allow-Origin</code> → os tiles são bloqueados por CORS.",
+      "Solução do projeto: um <code class='i'>web</code> fallback por plataforma em <code class='i'>mapModes.ts</code>.",
+    ],
+    style: {
+      raster: [
+        { id: "opnv", tiles: ["https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png"], attribution: `${OSM} | © MeMoMaps`, maxzoom: 18 },
+      ],
+    },
+    webStyle: { url: `${OFM}/liberty` },
+    webComment: "// O ÖPNVKarte não envia cabeçalho CORS: o navegador bloqueia os tiles.\n// Na web usamos um fallback vetorial que também mostra estações e linhas.",
+    view: { center: [-46.6352, -23.5352], zoom: 15.2 },
+    badge: "Navegador → fallback (CORS)",
+    notes: "Ponto didático: este mapa à esquerda é o fallback, porque estamos num navegador. Mostre a aba App (ÖPNVKarte) e a aba Web (fallback). Se quiser, abra o DevTools e mostre o erro de CORS trocando a URL.",
+  },
+  {
+    id: "railway", label: "Ferrovias", icon: "🚆", kind: "raster", source: "Esri Light Gray + OpenRailwayMap",
+    purpose: "Infraestrutura ferroviária: trilhos, estações, linhas de metrô e trem.",
+    bullets: [
+      "<b>Overlay</b> transparente sobre uma base neutra.",
+      "Ordem das camadas = ordem de desenho: a base primeiro.",
+      "O fundo cinza faz as linhas coloridas se destacarem.",
+    ],
+    style: {
+      raster: [
+        { id: "gray", tiles: [`${ESRI}/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri, HERE, Garmin", maxzoom: 16 },
+        { id: "orm", tiles: abc("https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"), attribution: `${OSM} | © OpenRailwayMap (CC-BY-SA)`, maxzoom: 19 },
+      ],
+    },
+    view: { center: [-46.625, -23.54], zoom: 12.6 },
+    notes: "Região da Luz e do Brás: linhas da CPTM e do Metrô.",
+  },
+  {
+    id: "nautical", label: "Náutico", icon: "⚓", kind: "raster", source: "Esri Ocean + OpenSeaMap",
+    purpose: "Navegação e pesca: profundidade, boias, faróis e canais de acesso.",
+    bullets: [
+      "Batimetria (profundidade do mar) da Esri Ocean.",
+      "Sinalização náutica do OpenSeaMap por cima.",
+      "Três camadas raster combinadas em um estilo.",
+    ],
+    style: {
+      raster: [
+        { id: "ocean", tiles: [`${ESRI}/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri, GEBCO, NOAA", maxzoom: 16 },
+        { id: "oceanref", tiles: [`${ESRI}/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri", maxzoom: 16 },
+        { id: "seamarks", tiles: ["https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"], attribution: "© OpenSeaMap", maxzoom: 18 },
+      ],
+    },
+    view: { center: [-46.315, -23.985], zoom: 13 },
+    notes: "Porto de Santos: veja as boias marcando o canal de navegação.",
+  },
+  {
+    id: "humanitarian", label: "Serviços", icon: "🏥", kind: "raster", source: "OSM Humanitário (HOT)",
+    purpose: "Resposta a emergências e mapeamento social: hospitais, escolas, água e abrigos.",
+    bullets: [
+      "Estilo da Humanitarian OpenStreetMap Team.",
+      "Realça serviços essenciais em vez de comércio.",
+      "Usado em desastres e projetos de mapeamento comunitário.",
+    ],
+    style: {
+      raster: [
+        { id: "hot", tiles: abc("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", ["a", "b"]), attribution: `${OSM} | HOT / OSM France`, maxzoom: 20 },
+      ],
+    },
+    view: { center: [-46.6415, -23.5505], zoom: 15 },
+    notes: "Centro de São Paulo. Compare com o primeiro mapa: mesma área, prioridade diferente.",
+  },
+];
+
+/* =====================================================================
+   GERAÇÃO DO CÓDIGO EXIBIDO (a partir dos mesmos dados que desenham o mapa)
+   ===================================================================== */
+function printer() {
+  const ctx = { esri: false };
+  function pr(v, ind = 0, json = false) {
+    const pad = "  ".repeat(ind), pad1 = "  ".repeat(ind + 1);
+    if (typeof v === "string") {
+      if (!json && v.startsWith(ESRI)) { ctx.esri = true; return "`${ESRI}" + v.slice(ESRI.length) + "`"; }
+      return JSON.stringify(v);
+    }
+    if (typeof v !== "object" || v === null) return String(v);
+    if (Array.isArray(v)) {
+      const items = v.map((x) => pr(x, ind + 1, json));
+      const one = "[" + items.join(", ") + "]";
+      if (one.length + ind * 2 < 72 && !one.includes("\n")) return one;
+      return "[\n" + items.map((i) => pad1 + i).join(",\n") + (json ? "\n" : ",\n") + pad + "]";
+    }
+    const ents = Object.entries(v).map(([k, x]) =>
+      (!json && /^[A-Za-z_$][\w$]*$/.test(k) ? k : JSON.stringify(k)) + ": " + pr(x, ind + 1, json));
+    const one = "{ " + ents.join(", ") + " }";
+    if (one.length + ind * 2 < 72 && !one.includes("\n")) return one;
+    return "{\n" + ents.map((e) => pad1 + e).join(",\n") + (json ? "\n" : ",\n") + pad + "}";
+  }
+  return { pr, ctx };
+}
+
+function styleExpr(style) {
+  const { pr, ctx } = printer();
+  let expr;
+  if (style.url) expr = JSON.stringify(style.url);
+  else if (style.raster) expr = "rasterStyle(" + pr(style.raster) + ")";
+  else expr = pr(style.object);
+  return { expr, esri: ctx.esri, isObject: !style.url, isRaster: !!style.raster };
+}
+
+function viewProps(v) {
+  const parts = [`center: [${v.center.join(", ")}]`, `zoom: ${v.zoom}`];
+  if (v.pitch) parts.push(`pitch: ${v.pitch}`);
+  if (v.bearing) parts.push(`bearing: ${v.bearing}`);
+  return parts;
+}
+
+function pascal(id) { return id.replace(/(^|[-_])(\w)/g, (_, __, c) => c.toUpperCase()); }
+
+function appCode(d) {
+  const s = styleExpr(d.style);
+  const lines = [];
+  lines.push(`import { Map, Camera, UserLocation${s.isObject ? ", type StyleSpecification" : ""} }`);
+  lines.push(`  from "@maplibre/maplibre-react-native";`);
+  if (s.isRaster) lines.push(`import { rasterStyle } from "./mapModes"; // helper do projeto`);
+  lines.push("");
+  if (s.esri) lines.push(`const ESRI = "${ESRI}";`, "");
+  lines.push(`const STYLE${s.isObject ? ": StyleSpecification" : ""} = ${s.expr};`, "");
+  const vp = viewProps(d.view);
+  lines.push(`export default function Mapa${pascal(d.id)}() {`);
+  lines.push(`  return (`);
+  lines.push(`    <Map style={{ flex: 1 }} mapStyle={STYLE} compass>`);
+  lines.push(`      <Camera`);
+  lines.push(`        initialViewState={{`);
+  vp.forEach((p) => lines.push(`          ${p},`));
+  lines.push(`        }}`);
+  lines.push(`      />`);
+  lines.push(`      <UserLocation accuracy />`);
+  lines.push(`    </Map>`);
+  lines.push(`  );`);
+  lines.push(`}`);
+  return lines.join("\n");
+}
+
+function webCode(d) {
+  const style = d.webStyle || d.style;
+  const s = styleExpr(style);
+  const lines = [];
+  lines.push(`import * as maplibregl from "maplibre-gl";`);
+  lines.push(`import "maplibre-gl/dist/maplibre-gl.css";`);
+  if (s.isRaster) lines.push(`import { rasterStyle } from "./mapModes"; // helper do projeto`);
+  lines.push("");
+  if (d.webComment) lines.push(d.webComment);
+  if (s.esri) lines.push(`const ESRI = "${ESRI}";`, "");
+  lines.push(`const STYLE = ${s.expr};`, "");
+  lines.push(`const map = new maplibregl.Map({`);
+  lines.push(`  container: "map",          // id da <div>`);
+  lines.push(`  style: STYLE,`);
+  viewProps(d.view).forEach((p, i) => lines.push(`  ${p},${i === 0 ? "   // [lng, lat]" : ""}`));
+  lines.push(`});`);
+  lines.push("");
+  lines.push(`map.addControl(new maplibregl.NavigationControl());`);
+  lines.push(`map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }));`);
+  return lines.join("\n");
+}
+
+const RASTER_HELPER = `// mapModes.ts — monta um Style JSON a partir de camadas raster
+function rasterStyle(layers: RasterLayer[]): StyleSpecification {
+  const sources = {};
+  for (const l of layers) {
+    sources[l.id] = {
+      type: "raster", tiles: l.tiles, tileSize: l.tileSize ?? 256,
+      maxzoom: l.maxzoom ?? 19, attribution: l.attribution,
+    };
+  }
+  return {
+    version: 8, glyphs: GLYPHS, sources,
+    layers: [
+      { id: "bg", type: "background", paint: { "background-color": "#e8e8e8" } },
+      ...layers.map((l) => ({ id: l.id, type: "raster", source: l.id })),
+    ],
+  };
+}`;
+
+/* =====================================================================
+   MONTAGEM DOS SLIDES DE DEMONSTRAÇÃO
+   ===================================================================== */
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const kindTag = { "vetorial": "", "raster": "teal", "raster-dem": "amber" };
+
+function buildDemoSlide(d, i) {
+  const sec = document.createElement("section");
+  sec.className = "slide";
+  sec.dataset.section = "Demonstrações";
+  const badge = d.badge || `${d.kind === "vetorial" ? "📐 Vetorial" : d.kind === "raster-dem" ? "⛰️ Raster-DEM" : "🖼️ Raster"} · ${d.source}`;
+  const rasterNote = d.style.raster ? `<div class="note">rasterStyle() está no slide "Receita raster" e em mapModes.ts</div>` : "";
+  sec.innerHTML = `
+    <div class="demo-grid">
+      <div class="map" data-map="demo:${d.id}"><div class="badge">${esc(badge)}</div><div class="loading">Carregando mapa…</div></div>
+      <div class="demo-side">
+        <div class="demo-head"><span class="big">${d.icon}</span><div>
+          <span class="tag ${kindTag[d.kind]}">${d.kind}</span>${d.cors ? '<span class="tag rose">⚠️ CORS na web</span>' : ""}<span class="tag" style="background:#eef2fa;color:#526077">Demo ${i + 1} de ${DEMOS.length}</span>
+          <h2>${d.label}</h2></div></div>
+        <p class="demo-purpose">${d.purpose}</p>
+        <ul class="clean demo-bullets">${d.bullets.map((b) => `<li>${b}</li>`).join("")}</ul>
+        <div class="code tabs-code" data-extra-note="${d.style.raster ? "1" : ""}">
+          <script type="text/plain" data-tab="app" data-file="Mapa${pascal(d.id)}.tsx">${appCode(d)}<\/script>
+          <script type="text/plain" data-tab="web" data-file="mapa-${d.id}.js">${webCode(d)}<\/script>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">${d.notes || ""}</aside>`;
+  return sec;
+}
+
+function buildRasterRecipeSlide() {
+  const sec = document.createElement("section");
+  sec.className = "slide";
+  sec.dataset.section = "Demonstrações";
+  sec.innerHTML = `
+    <div class="kicker">Receita raster</div>
+    <h2>Um helper para montar estilos raster</h2>
+    <div class="cols-2 grow">
+      <div>
+        <ul class="clean">
+          <li>Fontes raster não têm um Style JSON pronto: nós montamos um.</li>
+          <li>Cada item vira uma <code class="i">source</code> + uma <code class="i">layer</code> do tipo <code class="i">raster</code>.</li>
+          <li>A ordem do array é a ordem de desenho — dá para empilhar <b>base + overlay</b>.</li>
+          <li>O objeto resultante vai direto em <code class="i">mapStyle</code> (app) ou <code class="i">style</code> (web).</li>
+        </ul>
+        <div class="callout" style="margin-top:1rem">Próximas demos usam este helper: Satélite, Topográfico, Explorador, Ciclismo, Transporte, Ferrovias, Náutico e Serviços.</div>
+      </div>
+      <div class="code"><div class="code-bar"><span class="tab on">mapModes.ts</span><span class="file">compartilhado app + web</span></div><pre><code class="language-typescript">${esc(RASTER_HELPER)}</code></pre></div>
+    </div>
+    <aside class="notes">Explique rapidamente: é só uma função que transforma uma lista de URLs de tiles em um Style JSON válido.</aside>`;
+  return sec;
+}
+
+const anchor = document.getElementById("demo-anchor");
+DEMOS.forEach((d, i) => {
+  if (d.id === "satellite") anchor.before(buildRasterRecipeSlide());
+  anchor.before(buildDemoSlide(d, i));
+});
+
+document.getElementById("modes-grid").innerHTML = DEMOS.map((d) =>
+  `<div class="mode" style="border-top:.3rem solid ${d.kind === "vetorial" ? "var(--accent)" : d.kind === "raster-dem" ? "var(--amber)" : "var(--teal)"}"><div class="e">${d.icon}</div><b>${d.label}</b><span>${d.source}</span></div>`
+).join("") + `<div class="mode" style="border-top:.3rem solid var(--rose)"><div class="e">🎥📌</div><b>+ 2 extras</b><span>Câmera animada e GeoJSON próprio</span></div>`
+  + `<div class="mode" style="background:transparent;border:1px dashed var(--line)"><span>🟦 vetorial &nbsp; 🟩 raster &nbsp; 🟧 elevação</span></div>`;
+
+/* =====================================================================
+   BLOCOS DE CÓDIGO: realce + abas App/Web globais
+   ===================================================================== */
+let codeMode = "app";
+const LANG = (file) => /\.json$/.test(file) ? "json" : "typescript";
+
+function hl(code, lang) {
+  try { return hljs.highlight(code, { language: lang }).value; } catch { return esc(code); }
+}
+
+document.querySelectorAll("pre code[class*='language-']").forEach((el) => {
+  const lang = el.className.match(/language-(\w+)/)[1];
+  el.innerHTML = hl(el.textContent, lang);
+});
+
+document.querySelectorAll(".tabs-code").forEach((box) => {
+  const scripts = [...box.querySelectorAll("script[type='text/plain']")];
+  const bar = document.createElement("div");
+  bar.className = "code-bar";
+  const panes = [];
+  scripts.forEach((s) => {
+    const tab = s.dataset.tab;
+    const code = s.textContent.replace(/<\\\/script>/g, "<\/script>").replace(/^\n/, "");
+    const btn = document.createElement("button");
+    btn.className = "tab";
+    btn.dataset.tab = tab;
+    btn.textContent = tab === "app" ? "📱 App (Android/iOS)" : "🌐 Web";
+    btn.onclick = () => setCodeMode(tab);
+    bar.appendChild(btn);
+    const pane = document.createElement("div");
+    pane.className = "pane";
+    pane.dataset.tab = tab;
+    pane.dataset.file = s.dataset.file || "";
+    pane.innerHTML = `<pre><code>${hl(code, LANG(s.dataset.file || ""))}</code></pre>`;
+    pane._raw = code;
+    panes.push(pane);
+    s.remove();
+  });
+  const file = document.createElement("span");
+  file.className = "file";
+  bar.appendChild(file);
+  const copy = document.createElement("button");
+  copy.className = "copy";
+  copy.textContent = "Copiar";
+  copy.onclick = () => {
+    const on = panes.find((p) => p.classList.contains("on"));
+    navigator.clipboard?.writeText(on._raw).then(() => { copy.textContent = "Copiado ✓"; setTimeout(() => (copy.textContent = "Copiar"), 1500); });
+  };
+  bar.appendChild(copy);
+  box.prepend(bar);
+  panes.forEach((p) => box.appendChild(p));
+  if (box.dataset.extraNote) {
+    const n = document.createElement("div");
+    n.className = "note";
+    n.textContent = "rasterStyle() está no slide \"Receita raster\" e em mapModes.ts";
+    box.appendChild(n);
+  }
+  box._update = () => {
+    bar.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === codeMode));
+    panes.forEach((p) => p.classList.toggle("on", p.dataset.tab === codeMode));
+    file.textContent = panes.find((p) => p.dataset.tab === codeMode)?.dataset.file || "";
+  };
+  box._update();
+});
+
+function setCodeMode(m) {
+  codeMode = m;
+  document.querySelectorAll(".tabs-code").forEach((b) => b._update());
+}
+
+/* =====================================================================
+   MAPAS AO VIVO (criados ao entrar no slide, destruídos ao sair)
+   ===================================================================== */
+function toRuntimeStyle(style) {
+  if (style.url) return style.url;
+  if (style.raster) return rasterStyle(style.raster);
+  return style.object;
+}
+
+function baseMap(el, opts) {
+  const map = new maplibregl.Map({
+    container: el,
+    keyboard: false,
+    attributionControl: { compact: true },
+    maxPitch: 85,
+    ...opts,
+  });
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+  map.on("load", () => el.querySelector(".loading")?.remove());
+  return map;
+}
+
+const PLAYGROUND_STYLE = {
+  version: 8,
+  glyphs: GLYPHS,
+  sources: {
+    openmaptiles: { type: "vector", url: "https://tiles.openfreemap.org/planet" },
+  },
+  layers: [
+    { id: "fundo", type: "background", paint: { "background-color": "#ebe5da" } },
+    { id: "agua", type: "fill", source: "openmaptiles", "source-layer": "water", paint: { "fill-color": "#9ec7e8" } },
+    { id: "parques", type: "fill", source: "openmaptiles", "source-layer": "park", paint: { "fill-color": "#b5dca5" } },
+    { id: "predios", type: "fill", source: "openmaptiles", "source-layer": "building", minzoom: 14, paint: { "fill-color": "#d3c7bb", "fill-outline-color": "#b8a998" } },
+    {
+      id: "ruas", type: "line", source: "openmaptiles", "source-layer": "transportation",
+      paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 18, 14] },
+    },
+  ],
+};
+
+const PONTOS = {
+  type: "FeatureCollection",
+  features: [
+    ["MASP", "museu", -46.6559, -23.5614],
+    ["Pinacoteca", "museu", -46.6339, -23.5342],
+    ["Museu do Ipiranga", "museu", -46.6097, -23.5855],
+    ["Parque Ibirapuera", "parque", -46.6575, -23.5874],
+    ["Parque da Luz", "parque", -46.6345, -23.5362],
+    ["Mercadão", "mercado", -46.6297, -23.5417],
+    ["Theatro Municipal", "teatro", -46.6388, -23.5452],
+    ["Catedral da Sé", "igreja", -46.6342, -23.5513],
+  ].map(([nome, tipo, lng, lat]) => ({ type: "Feature", properties: { nome, tipo }, geometry: { type: "Point", coordinates: [lng, lat] } })),
+};
+
+const PLACES = { sp: [-46.6339, -23.5503], rio: [-43.1729, -22.9068], bsb: [-47.8645, -15.7998] };
+
+const FACTORIES = {
+  cover(el) {
+    const map = new maplibregl.Map({
+      container: el, style: `${OFM}/liberty`, center: [-46.6565, -23.5618], zoom: 15.6, pitch: 62, bearing: -20,
+      interactive: false, attributionControl: { compact: true },
+    });
+    const spin = () => map.rotateTo(map.getBearing() + 90, { duration: 24000, easing: (t) => t });
+    map.on("load", spin);
+    map.on("moveend", spin);
+    return map;
+  },
+
+  tiles(el) {
+    const map = baseMap(el, { style: `${OFM}/positron`, center: [-46.6388, -23.5558], zoom: 11 });
+    map.showTileBoundaries = true;
+    return map;
+  },
+
+  playground(el) {
+    const ta = document.getElementById("playground-editor");
+    const status = document.getElementById("playground-status");
+    if (!ta.value) ta.value = printer().pr(PLAYGROUND_STYLE, 0, true);
+    const map = baseMap(el, { style: JSON.parse(ta.value), center: [-46.6560, -23.5850], zoom: 14.2 });
+    let t;
+    ta.oninput = () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        try {
+          const obj = JSON.parse(ta.value);
+          map.setStyle(obj, { diff: true });
+          status.textContent = "✓ Estilo válido — mapa atualizado";
+          status.classList.remove("err");
+        } catch (e) {
+          status.textContent = "✗ JSON inválido: " + e.message;
+          status.classList.add("err");
+        }
+      }, 300);
+    };
+    ta.onkeydown = (e) => {
+      e.stopPropagation();
+      if (e.key === "Tab") { e.preventDefault(); document.execCommand("insertText", false, "  "); }
+    };
+    return map;
+  },
+
+  camera(el) {
+    const map = baseMap(el, { style: `${OFM}/liberty`, center: PLACES.sp, zoom: 11 });
+    el.querySelectorAll("[data-fly]").forEach((b) => {
+      b.onclick = () => {
+        const k = b.dataset.fly;
+        if (PLACES[k]) map.flyTo({ center: PLACES[k], zoom: 12, duration: 4000, pitch: 0 });
+        if (k === "tilt") map.easeTo({ pitch: 60, zoom: 16, duration: 1500 });
+        if (k === "spin") map.rotateTo(map.getBearing() + 180, { duration: 3000 });
+        if (k === "reset") map.easeTo({ pitch: 0, bearing: 0, zoom: 12, duration: 1000 });
+      };
+    });
+    return map;
+  },
+
+  geojson(el) {
+    const map = baseMap(el, { style: `${OFM}/positron`, center: [-46.645, -23.556], zoom: 12.6 });
+    map.on("load", () => {
+      map.addSource("pontos", { type: "geojson", data: PONTOS });
+      map.addLayer({
+        id: "pontos-circulo", type: "circle", source: "pontos",
+        paint: {
+          "circle-radius": 9,
+          "circle-color": ["match", ["get", "tipo"], "museu", "#7c3aed", "parque", "#16a34a", "mercado", "#d97706", "#e11d48"],
+          "circle-stroke-width": 3,
+          "circle-stroke-color": "#ffffff",
+        },
+      });
+      map.addLayer({
+        id: "pontos-nome", type: "symbol", source: "pontos",
+        layout: { "text-field": ["get", "nome"], "text-font": ["Noto Sans Bold"], "text-size": 13, "text-offset": [0, 1.2], "text-anchor": "top" },
+        paint: { "text-halo-color": "#ffffff", "text-halo-width": 2 },
+      });
+      map.on("click", "pontos-circulo", (e) => {
+        const p = e.features[0].properties;
+        new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<b>${p.nome}</b><br>${p.tipo}`).addTo(map);
+      });
+      map.on("mouseenter", "pontos-circulo", () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", "pontos-circulo", () => (map.getCanvas().style.cursor = ""));
+    });
+    return map;
+  },
+};
+
+function createMapFor(el) {
+  const key = el.dataset.map;
+  if (key.startsWith("demo:")) {
+    const d = DEMOS.find((x) => x.id === key.slice(5));
+    return baseMap(el, { style: toRuntimeStyle(d.webStyle || d.style), ...d.view });
+  }
+  return FACTORIES[key](el);
+}
+
+/* =====================================================================
+   NAVEGAÇÃO
+   ===================================================================== */
+const slides = [...document.querySelectorAll(".slide")];
+let current = -1;
+let liveMaps = [];
+
+function activate(i) {
+  i = Math.max(0, Math.min(slides.length - 1, i));
+  if (i === current) return;
+  liveMaps.forEach((m) => m.remove());
+  liveMaps = [];
+  slides[current]?.classList.remove("active");
+  current = i;
+  const s = slides[i];
+  s.classList.add("active");
+  requestAnimationFrame(() => {
+    s.querySelectorAll(".map[data-map]").forEach((el) => {
+      try { liveMaps.push(createMapFor(el)); } catch (e) { console.error(e); }
+    });
+  });
+  document.getElementById("sec").textContent = s.dataset.section || "";
+  document.getElementById("count").textContent = `${i + 1} / ${slides.length}`;
+  document.getElementById("bar").style.width = `${((i + 1) / slides.length) * 100}%`;
+  const notes = s.querySelector(".notes");
+  document.getElementById("notes").innerHTML = `<b>Notas · slide ${i + 1}</b><br>${notes ? notes.innerHTML : "—"}`;
+  history.replaceState(null, "", `#${i + 1}`);
+  if (!timerStart && i > 0) timerStart = Date.now();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "TEXTAREA") return;
+  const k = e.key;
+  if (["ArrowRight", "PageDown", " "].includes(k)) { e.preventDefault(); activate(current + 1); }
+  else if (["ArrowLeft", "PageUp"].includes(k)) { e.preventDefault(); activate(current - 1); }
+  else if (k === "Home") activate(0);
+  else if (k === "End") activate(slides.length - 1);
+  else if (k === "n" || k === "N") document.getElementById("notes").classList.toggle("on");
+  else if (k === "f" || k === "F") { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  else if (k === "a" || k === "A") setCodeMode("app");
+  else if (k === "w" || k === "W") setCodeMode("web");
+  else if (k === "t" || k === "T") timerStart = Date.now();
+  else if (k === "?") document.getElementById("help").classList.toggle("on");
+});
+document.getElementById("prev").onclick = () => activate(current - 1);
+document.getElementById("next").onclick = () => activate(current + 1);
+document.getElementById("help-btn").onclick = () => document.getElementById("help").classList.toggle("on");
+
+let timerStart = 0;
+document.getElementById("timer").onclick = () => (timerStart = Date.now());
+setInterval(() => {
+  const s = timerStart ? Math.floor((Date.now() - timerStart) / 1000) : 0;
+  const el = document.getElementById("timer");
+  el.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  el.style.color = s > 25 * 60 ? "#fda4af" : s > 22 * 60 ? "#fcd34d" : "";
+}, 1000);
+
+const start = parseInt(location.hash.slice(1), 10);
+activate(Number.isFinite(start) ? start - 1 : 0);
+</script>
+</body>
+</html>

@@ -17,7 +17,7 @@ export type MapMode = {
 const GLYPHS = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
 
 /** Monta um estilo MapLibre a partir de uma ou mais camadas raster (tiles PNG/JPG). */
-function rasterStyle(
+export function rasterStyle(
   layers: { id: string; tiles: string[]; attribution: string; maxzoom?: number; tileSize?: number }[],
 ): StyleSpecification {
   const sources: StyleSpecification["sources"] = {};
