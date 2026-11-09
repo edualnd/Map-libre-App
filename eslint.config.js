@@ -5,6 +5,6 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*', 'public/maplibre-gl-worker.mjs'],
+    ignores: ['dist/*', 'public/maplibre-gl-worker.mjs', 'slides/*'],
   },
 ]);
