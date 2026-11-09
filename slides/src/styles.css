@@ -222,3 +222,45 @@ table.t code { font-family: "JetBrains Mono", monospace; font-size: .9em; color:
 .notes-panel b svg { width: 1rem; height: 1rem; }
 .help { position: absolute; right: 1.4rem; bottom: 3.2rem; z-index: 30; background: rgba(11,18,38,.96); color: #e2e8f5; border-radius: .9rem; padding: 1rem 1.3rem; font-size: .95rem; line-height: 1.9; }
 .help kbd { font-family: "JetBrains Mono", monospace; background: #1f2c4b; padding: .1rem .4rem; border-radius: .3rem; }
+
+/* Logo na abertura de seção e tabela comparativa */
+.section .section-logo { height: 5.5rem; width: auto; margin: .6rem 0 .2rem; align-self: flex-start; }
+table.t.compare { font-size: 1.15rem; }
+table.t.compare td { padding: .7rem 1.1rem; }
+table.t.compare td:first-child { width: 13%; }
+table.t.compare tr.hl td { background: rgba(37, 99, 235, .08); }
+table.t.compare tr.hl td:first-child { color: var(--accent); }
+.explain { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; margin-bottom: 1.2rem; }
+.explain p { margin: 0; font-size: 1.15rem; line-height: 1.5; }
+.explain b.h { display: flex; align-items: center; gap: .45rem; margin-bottom: .3rem; color: var(--ink); }
+.explain b.h svg { width: 1.2rem; height: 1.2rem; color: var(--accent); }
+
+/* Passo a passo: etiquetas de componente / atributo / função / evento */
+.api-items { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem .9rem; }
+.api-item { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: .45rem; padding: .4rem .6rem; border-radius: .55rem; background: var(--panel); border: 1px solid var(--line); border-left: .25rem solid var(--c); font-size: .88rem; line-height: 1.3; --c: var(--accent); --cs: var(--accent-soft); }
+.api-item code { font: 600 .86rem "JetBrains Mono", monospace; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.api-item .kind { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--c); background: var(--cs); padding: .05rem .4rem; border-radius: 999px; justify-self: start; }
+.api-item .desc { grid-column: 1 / -1; color: var(--muted); }
+.api-item.k-atributo { --c: var(--teal); --cs: var(--teal-soft); }
+.api-item.k-funcao { --c: #7c3aed; --cs: #ede9fe; }
+.api-item.k-evento { --c: var(--amber); --cs: var(--amber-soft); }
+.api-legend { display: flex; align-items: center; gap: .6rem; margin-top: 1.6rem; flex-wrap: wrap; }
+.api-legend .api-item { display: inline-flex; padding: .35rem .6rem; }
+.roadmap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.roadmap > div { background: var(--panel); border: 1px solid var(--line); border-radius: .9rem; padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .35rem; }
+.roadmap .n { width: 2rem; height: 2rem; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; display: grid; place-items: center; }
+.roadmap b { font-size: 1.2rem; }
+.roadmap code { font: .85rem "JetBrains Mono", monospace; color: #1e3a8a; }
+.map-info { position: absolute; z-index: 4; left: .8rem; right: .8rem; bottom: 2.6rem; display: grid; gap: .4rem; }
+.map-info div { background: rgba(15,23,42,.88); color: #fff; padding: .5rem .8rem; border-radius: .55rem; font-size: .95rem; }
+.map-info b { display: block; font: 600 .72rem "JetBrains Mono", monospace; color: #7fb0ff; margin-bottom: .1rem; }
+.etiqueta { background: #0f172a; color: #fff; font: 700 .85rem "Inter", sans-serif; padding: .3rem .6rem; border-radius: .45rem; box-shadow: 0 .2rem .5rem rgba(0,0,0,.3); }
+
+/* Passo 1: painel de valores da câmera sobre o mapa */
+.cam-panel { position: absolute; z-index: 4; left: .8rem; bottom: 2.6rem; display: grid; gap: .35rem; background: rgba(15,23,42,.88); padding: .6rem .7rem; border-radius: .7rem; }
+.cam-row { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; }
+.cam-row code { font: 600 .8rem "JetBrains Mono", monospace; color: #7fb0ff; width: 4.2rem; }
+.cam-row button { font: 600 .82rem "Inter", sans-serif; border: 0; background: #1f2c4b; color: #c9d5ef; padding: .3rem .6rem; border-radius: .4rem; cursor: pointer; }
+.cam-row button:hover { background: #2b3c66; color: #fff; }
+.cam-row button.on { background: var(--accent); color: #fff; }
+.map-info.top { top: 3.4rem; bottom: auto; right: auto; max-width: 75%; }

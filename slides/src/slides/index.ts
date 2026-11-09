@@ -1,16 +1,18 @@
 import type { SlideDef } from "../deck/Deck";
-import { apiSlides } from "./api";
+import { buildSlides } from "./build";
 import { closingSlides } from "./closing";
 import { conceptSlides } from "./concepts";
 import { demoSlides } from "./demos";
 import { introSlides } from "./intro";
 import { platformSlides } from "./platforms";
+import { styleSlides } from "./style";
 
 export const SLIDES: SlideDef[] = [
   ...introSlides,
   ...conceptSlides,
   ...platformSlides,
-  ...apiSlides,
+  ...buildSlides,
   ...demoSlides,
+  ...styleSlides,
   ...closingSlides,
 ];

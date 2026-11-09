@@ -1,6 +1,6 @@
 import type { StyleSpecification } from "maplibre-gl";
 import {
-  Anchor, Bike, Building2, Bus, Compass, Hospital, Minimize2, Moon, Mountain,
+  Bike, Building2, Bus, Mountain,
   MountainSnow, Satellite, Store, TrainFront, type LucideIcon,
 } from "lucide-react";
 
@@ -8,6 +8,8 @@ import {
 /* Fontes e helpers — iguais aos de mapModes.ts no app                 */
 /* ------------------------------------------------------------------ */
 export const OFM = "https://tiles.openfreemap.org/styles";
+/** Posição inicial de todos os mapas: centro de Caraguatatuba (Praça Cândido Mota). */
+export const CARAGUA: [number, number] = [-45.411, -23.622];
 export const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
 const OSM = "© OpenStreetMap contributors";
 export const GLYPHS = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
@@ -85,7 +87,7 @@ const RELIEF_STYLE: StyleSpecification = {
 };
 
 /* ------------------------------------------------------------------ */
-/* As 13 demonstrações                                                 */
+/* As demonstrações: vetorial → elevação → raster                     */
 /* ------------------------------------------------------------------ */
 export type Kind = "vetorial" | "raster" | "raster-dem";
 export type DemoStyle = { url: string } | { raster: RasterLayer[] } | { object: StyleSpecification };
@@ -118,32 +120,8 @@ export const DEMOS: Demo[] = [
       "A mesma URL funciona no app e na web, sem API key.",
     ],
     style: { url: `${OFM}/liberty` },
-    view: { center: [-46.6365, -23.5475], zoom: 16.2 },
-    notes: "Dê zoom e mostre os ícones de lojas e os números das casas. Tudo isso vem dos dados do OpenStreetMap.",
-  },
-  {
-    id: "minimal", label: "Minimalista", Icon: Minimize2, kind: "vetorial", source: "OpenFreeMap · Positron",
-    purpose: "Base limpa e neutra para destacar os SEUS dados por cima — pontos, rotas e mapas de calor.",
-    bullets: [
-      "Mesmos dados do Liberty: só o Style JSON muda.",
-      "Menos ruído visual = leitura mais rápida.",
-      "Ideal com <code class='i'>GeoJSONSource</code> (veja a demo de pontos).",
-    ],
-    style: { url: `${OFM}/positron` },
-    view: { center: [-46.6388, -23.5558], zoom: 12.5 },
-    notes: "Compare com o slide anterior: mesma cidade, mesmos dados, outra receita.",
-  },
-  {
-    id: "night", label: "Noturno", Icon: Moon, kind: "vetorial", source: "OpenFreeMap · Dark",
-    purpose: "Uso à noite ou no modo escuro do sistema: menos brilho e mais conforto.",
-    bullets: [
-      "Trocar de tema = trocar uma string. Zero mudança na lógica.",
-      "No app: combine com <code class='i'>useColorScheme()</code>.",
-      "Na web: combine com <code class='i'>prefers-color-scheme</code>.",
-    ],
-    style: { url: `${OFM}/dark` },
-    view: { center: [-46.6388, -23.5558], zoom: 13 },
-    notes: "Bom momento para falar de acessibilidade e conforto visual.",
+    view: { center: CARAGUA, zoom: 16 },
+    notes: "Centro de Caraguatatuba. Dê zoom e mostre os ícones de comércio e os números das casas — tudo vem dos dados do OpenStreetMap.",
   },
   {
     id: "buildings3d", label: "Prédios 3D", Icon: Building2, kind: "vetorial", source: "OpenFreeMap · Liberty + pitch",
@@ -154,8 +132,20 @@ export const DEMOS: Demo[] = [
       "Na tela: botão direito + arrastar (web) ou dois dedos (app) para girar.",
     ],
     style: { url: `${OFM}/liberty` },
-    view: { center: [-46.6555, -23.5625], zoom: 16.3, pitch: 60, bearing: -30 },
-    notes: "Av. Paulista. Gire com o botão direito do mouse para mostrar o efeito 3D.",
+    view: { center: CARAGUA, zoom: 16.5, pitch: 60, bearing: -30 },
+    notes: "Centro de Caraguatatuba em perspectiva. Gire com o botão direito do mouse. Onde o OSM não tem altura cadastrada, o prédio usa uma altura padrão — mais um motivo para contribuir com o mapa.",
+  },
+  {
+    id: "relief", label: "Relevo", Icon: MountainSnow, kind: "raster-dem", source: "AWS Terrain Tiles + hillshade",
+    purpose: "Entender o terreno: serras, vales e morros sombreados a partir de dados de elevação.",
+    bullets: [
+      "Fonte <code class='i'>raster-dem</code>: cada pixel guarda uma altitude (Terrarium).",
+      "A camada <code class='i'>hillshade</code> calcula as sombras <b>no aparelho</b> — cor e intensidade são editáveis.",
+      "Na web dá para ir além: <code class='i'>map.setTerrain()</code> cria relevo 3D.",
+    ],
+    style: { object: RELIEF_STYLE },
+    view: { center: CARAGUA, zoom: 10.5 },
+    notes: "Caraguatatuba entre o mar e a Serra do Mar: veja a serra a oeste e a Ilhabela ao sul. Os dados são raster, mas o sombreado é calculado na GPU.",
   },
   {
     id: "satellite", label: "Satélite", Icon: Satellite, kind: "raster", source: "Esri World Imagery",
@@ -172,8 +162,8 @@ export const DEMOS: Demo[] = [
         { id: "labels", tiles: [`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri" },
       ],
     },
-    view: { center: [-43.1729, -22.9555], zoom: 13.6 },
-    notes: "Rio de Janeiro: Pão de Açúcar e Botafogo. Note que é um estilo montado à mão com rasterStyle().",
+    view: { center: CARAGUA, zoom: 14 },
+    notes: "Caraguatatuba vista de cima: a orla, o Morro Santo Antônio e a mata da serra. Estilo montado à mão com rasterStyle().",
   },
   {
     id: "topo", label: "Topográfico", Icon: Mountain, kind: "raster", source: "OpenTopoMap",
@@ -188,36 +178,8 @@ export const DEMOS: Demo[] = [
         { id: "opentopo", tiles: abc("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"), attribution: `${OSM}, SRTM | © OpenTopoMap (CC-BY-SA)`, maxzoom: 17 },
       ],
     },
-    view: { center: [-45.585, -22.735], zoom: 12.5 },
-    notes: "Campos do Jordão, Serra da Mantiqueira. Mostre as curvas de nível.",
-  },
-  {
-    id: "relief", label: "Relevo", Icon: MountainSnow, kind: "raster-dem", source: "AWS Terrain Tiles + hillshade",
-    purpose: "Entender o terreno: serras, vales e morros sombreados a partir de dados de elevação.",
-    bullets: [
-      "Fonte <code class='i'>raster-dem</code>: cada pixel guarda uma altitude (Terrarium).",
-      "A camada <code class='i'>hillshade</code> calcula as sombras <b>no aparelho</b> — cor e intensidade são editáveis.",
-      "Na web dá para ir além: <code class='i'>map.setTerrain()</code> cria relevo 3D.",
-    ],
-    style: { object: RELIEF_STYLE },
-    view: { center: [-43.25, -22.93], zoom: 10.6 },
-    notes: "Rio de Janeiro: maciço da Tijuca, Pedra Branca e Serra do Mar. Os dados são raster, mas o desenho é calculado na GPU.",
-  },
-  {
-    id: "explorer", label: "Explorador", Icon: Compass, kind: "raster", source: "Esri · National Geographic",
-    purpose: "Turismo e educação: cartografia editorial com parques, reservas e relevo.",
-    bullets: [
-      "Estilo clássico da National Geographic.",
-      "Destaca unidades de conservação e nomes geográficos.",
-      "<code class='i'>maxzoom: 16</code> — é um mapa de visão regional.",
-    ],
-    style: {
-      raster: [
-        { id: "natgeo", tiles: [`${ESRI}/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri, National Geographic, Garmin, HERE", maxzoom: 16 },
-      ],
-    },
-    view: { center: [-54.35, -25.62], zoom: 9.3 },
-    notes: "Parque Nacional do Iguaçu e a tríplice fronteira.",
+    view: { center: CARAGUA, zoom: 12.5 },
+    notes: "Curvas de nível da Serra do Mar logo atrás da cidade — a diferença de altitude é enorme em poucos quilômetros.",
   },
   {
     id: "cycling", label: "Ciclismo", Icon: Bike, kind: "raster", source: "CyclOSM",
@@ -232,8 +194,8 @@ export const DEMOS: Demo[] = [
         { id: "cyclosm", tiles: abc("https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"), attribution: `${OSM} | CyclOSM`, maxzoom: 20 },
       ],
     },
-    view: { center: [-46.664, -23.578], zoom: 14.2 },
-    notes: "Região da Paulista e do Ibirapuera. Mostre as ciclovias em azul.",
+    view: { center: CARAGUA, zoom: 14.5 },
+    notes: "Orla de Caraguatatuba: mostre as ciclovias da avenida da praia.",
   },
   {
     id: "transit", label: "Transporte", Icon: Bus, kind: "raster", source: "ÖPNVKarte (app) · Liberty (web)", cors: true,
@@ -250,7 +212,7 @@ export const DEMOS: Demo[] = [
     },
     webStyle: { url: `${OFM}/liberty` },
     webComment: "// O ÖPNVKarte não envia cabeçalho CORS: o navegador bloqueia os tiles.\n// Na web usamos um fallback vetorial que também mostra estações e linhas.",
-    view: { center: [-46.6352, -23.5352], zoom: 15.2 },
+    view: { center: CARAGUA, zoom: 15 },
     badge: "Navegador → fallback (CORS)",
     notes: "Ponto didático: o mapa à esquerda é o fallback, porque estamos num navegador. Mostre a aba App (ÖPNVKarte) e a aba Web (fallback).",
   },
@@ -268,42 +230,8 @@ export const DEMOS: Demo[] = [
         { id: "orm", tiles: abc("https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"), attribution: `${OSM} | © OpenRailwayMap (CC-BY-SA)`, maxzoom: 19 },
       ],
     },
-    view: { center: [-46.625, -23.54], zoom: 12.6 },
-    notes: "Região da Luz e do Brás: linhas da CPTM e do Metrô.",
-  },
-  {
-    id: "nautical", label: "Náutico", Icon: Anchor, kind: "raster", source: "Esri Ocean + OpenSeaMap",
-    purpose: "Navegação e pesca: profundidade, boias, faróis e canais de acesso.",
-    bullets: [
-      "Batimetria (profundidade do mar) da Esri Ocean.",
-      "Sinalização náutica do OpenSeaMap por cima.",
-      "Três camadas raster combinadas em um estilo.",
-    ],
-    style: {
-      raster: [
-        { id: "ocean", tiles: [`${ESRI}/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri, GEBCO, NOAA", maxzoom: 16 },
-        { id: "oceanref", tiles: [`${ESRI}/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}`], attribution: "© Esri", maxzoom: 16 },
-        { id: "seamarks", tiles: ["https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"], attribution: "© OpenSeaMap", maxzoom: 18 },
-      ],
-    },
-    view: { center: [-46.315, -23.985], zoom: 13 },
-    notes: "Porto de Santos: veja as boias marcando o canal de navegação.",
-  },
-  {
-    id: "humanitarian", label: "Serviços", Icon: Hospital, kind: "raster", source: "OSM Humanitário (HOT)",
-    purpose: "Resposta a emergências e mapeamento social: hospitais, escolas, água e abrigos.",
-    bullets: [
-      "Estilo da Humanitarian OpenStreetMap Team.",
-      "Realça serviços essenciais em vez de comércio.",
-      "Usado em desastres e projetos de mapeamento comunitário.",
-    ],
-    style: {
-      raster: [
-        { id: "hot", tiles: abc("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", ["a", "b"]), attribution: `${OSM} | HOT / OSM France`, maxzoom: 20 },
-      ],
-    },
-    view: { center: [-46.6415, -23.5505], zoom: 15 },
-    notes: "Centro de São Paulo. Compare com o primeiro mapa: mesma área, prioridade diferente.",
+    view: { center: CARAGUA, zoom: 9 },
+    notes: "Caraguatatuba não tem trem: o zoom inicial é baixo para mostrar a ferrovia do Vale do Paraíba (São José dos Campos) ao norte, do outro lado da serra.",
   },
 ];
 
@@ -357,7 +285,7 @@ export const pascal = (id: string) => id.replace(/(^|[-_])(\w)/g, (_, __, c: str
 export function appCode(d: Demo): string {
   const s = styleExpr(d.style);
   const L: string[] = [];
-  L.push(`import { Map, Camera, UserLocation${s.isObject ? ", type StyleSpecification" : ""} }`);
+  L.push(`import { Map, Camera${s.isObject ? ", type StyleSpecification" : ""} }`);
   L.push(`  from "@maplibre/maplibre-react-native";`);
   if (s.isRaster) L.push(`import { rasterStyle } from "./mapModes"; // helper do projeto`);
   L.push("");
@@ -365,13 +293,12 @@ export function appCode(d: Demo): string {
   L.push(`const STYLE${s.isObject ? ": StyleSpecification" : ""} = ${s.expr};`, "");
   L.push(`export default function Mapa${pascal(d.id)}() {`);
   L.push(`  return (`);
-  L.push(`    <Map style={{ flex: 1 }} mapStyle={STYLE} compass>`);
+  L.push(`    <Map style={{ flex: 1 }} mapStyle={STYLE} compass scaleBar>`);
   L.push(`      <Camera`);
   L.push(`        initialViewState={{`);
   viewProps(d.view).forEach((p) => L.push(`          ${p},`));
   L.push(`        }}`);
   L.push(`      />`);
-  L.push(`      <UserLocation accuracy />`);
   L.push(`    </Map>`);
   L.push(`  );`);
   L.push(`}`);
@@ -395,7 +322,7 @@ export function webCode(d: Demo): string {
   L.push(`});`);
   L.push("");
   L.push(`map.addControl(new maplibregl.NavigationControl());`);
-  L.push(`map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }));`);
+  L.push(`map.addControl(new maplibregl.ScaleControl());`);
   return L.join("\n");
 }
 
@@ -423,23 +350,18 @@ export const PLAYGROUND_STYLE: StyleSpecification = {
 export const PONTOS: GeoJSON.FeatureCollection = {
   type: "FeatureCollection",
   features: ([
-    ["MASP", "museu", -46.6559, -23.5614],
-    ["Pinacoteca", "museu", -46.6339, -23.5342],
-    ["Museu do Ipiranga", "museu", -46.6097, -23.5855],
-    ["Parque Ibirapuera", "parque", -46.6575, -23.5874],
-    ["Parque da Luz", "parque", -46.6345, -23.5362],
-    ["Mercadão", "mercado", -46.6297, -23.5417],
-    ["Theatro Municipal", "teatro", -46.6388, -23.5452],
-    ["Catedral da Sé", "igreja", -46.6342, -23.5513],
+    ["Praia do Centro", "praia", -45.4114, -23.6270],
+    ["Prainha", "praia", -45.3904, -23.6311],
+    ["Praia Martim de Sá", "praia", -45.3834, -23.6285],
+    ["Praia do Indaiá", "praia", -45.4238, -23.6441],
+    ["Praia de Massaguaçu", "praia", -45.3349, -23.5904],
+    ["Praia da Cocanha", "praia", -45.3136, -23.5766],
+    ["Morro Santo Antônio", "mirante", -45.4014, -23.6090],
+    ["Museu de Arte e Cultura", "museu", -45.4110, -23.6225],
+    ["Praça Cândido Mota", "praça", -45.4110, -23.6187],
   ] as const).map(([nome, tipo, lng, lat]) => ({
     type: "Feature" as const,
     properties: { nome, tipo },
     geometry: { type: "Point" as const, coordinates: [lng, lat] },
   })),
-};
-
-export const PLACES = {
-  sp: [-46.6339, -23.5503] as [number, number],
-  rio: [-43.1729, -22.9068] as [number, number],
-  bsb: [-47.8645, -15.7998] as [number, number],
 };

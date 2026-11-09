@@ -1,13 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import type maplibregl from "maplibre-gl";
-import {
-  Box, Braces, CircleCheck, CircleX, Database, FileJson, Grid3x3, Image, Info, Layers, Mountain, Paintbrush,
-  PenTool, Shapes, Type, TriangleAlert, Waves,
-} from "lucide-react";
-import { CodePanel, Highlight } from "../components/Code";
+import { Database, Grid3x3, Image, Info, Mountain, PenTool, Shapes, TriangleAlert } from "lucide-react";
+import { Highlight } from "../components/Code";
 import { LiveMap } from "../components/LiveMap";
 import { Callout, I, Kicker, No, Tag, WithIcon, Yes } from "../components/ui";
-import { OFM, PLAYGROUND_STYLE, print } from "../data/demos";
+import { CARAGUA, OFM } from "../data/demos";
 import type { SlideDef } from "../deck/Deck";
 
 /* ---------- Pirâmide de tiles ---------- */
@@ -37,60 +32,6 @@ function tileAnnotation() {
   ].join("\n");
 }
 
-/* ---------- Playground do Style JSON ---------- */
-function Playground() {
-  const [text, setText] = useState(() => print(PLAYGROUND_STYLE, 0, true));
-  const [error, setError] = useState<string | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      try {
-        const obj = JSON.parse(text);
-        mapRef.current?.setStyle(obj, { diff: true });
-        setError(null);
-      } catch (e) {
-        setError((e as Error).message);
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [text]);
-
-  return (
-    <div className="demo-grid">
-      <LiveMap
-        badge={<><FileJson /> Style JSON escrito à mão · 5 camadas</>}
-        options={{ style: PLAYGROUND_STYLE, center: [-46.656, -23.585], zoom: 14.2 }}
-        setup={(m) => { mapRef.current = m; return () => { mapRef.current = null; }; }}
-      />
-      <div className="demo-side">
-        <p className="demo-purpose">
-          Experimente: troque <I>#9ec7e8</I> (água) por <I>#ff00aa</I>, ou mude <I>line-width</I>. O mapa atualiza a cada tecla.
-        </p>
-        <div className="code">
-          <div className="code-bar">
-            <span className="tab on static"><Braces /> style.json</span>
-            <span className="file">mesmo JSON no app e na web</span>
-          </div>
-          <textarea
-            className="editor"
-            spellCheck={false}
-            wrap="off"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Tab") { e.preventDefault(); document.execCommand("insertText", false, "  "); }
-            }}
-          />
-          <div className={`status ${error ? "err" : ""}`}>
-            {error ? <><CircleX /> JSON inválido: {error}</> : <><CircleCheck /> Estilo válido — mapa atualizado</>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export const conceptSlides: SlideDef[] = [
   {
     section: "Como funciona",
@@ -100,7 +41,7 @@ export const conceptSlides: SlideDef[] = [
       <>
         <div className="num">02</div>
         <h2>Como um mapa digital funciona</h2>
-        <p>Tiles, fontes de dados, camadas e o Style JSON — os quatro conceitos que explicam tudo o que vem depois.</p>
+        <p>Tiles, raster × vetorial e as fontes de dados — os conceitos que explicam tudo o que vem depois.</p>
       </>
     ),
   },
@@ -129,7 +70,7 @@ export const conceptSlides: SlideDef[] = [
           </div>
           <LiveMap
             badge={<><Grid3x3 /> Ao vivo: map.showTileBoundaries = true · dê zoom</>}
-            options={{ style: `${OFM}/positron`, center: [-46.6388, -23.5558], zoom: 11 }}
+            options={{ style: `${OFM}/positron`, center: CARAGUA, zoom: 11 }}
             setup={(m) => { m.showTileBoundaries = true; }}
           />
         </div>
@@ -143,6 +84,18 @@ export const conceptSlides: SlideDef[] = [
       <>
         <Kicker Icon={Shapes}>Conceito 2</Kicker>
         <h2>Raster × Vetorial</h2>
+        <div className="explain">
+          <p>
+            <b className="h"><Image /> Mapa raster</b>
+            O mapa chega como uma <b>imagem pronta</b>, uma grade de pixels — como uma foto. O servidor já desenhou tudo:
+            cores, nomes e ícones ficam "queimados" na imagem e não dá para mudar nada no aparelho.
+          </p>
+          <p>
+            <b className="h"><PenTool /> Mapa vetorial</b>
+            O mapa chega como <b>dados geométricos</b> — pontos, linhas e polígonos com atributos (nome, tipo de via…).
+            Quem desenha é o próprio aparelho, seguindo um estilo: dá para mudar cores, girar, inclinar e consultar cada objeto.
+          </p>
+        </div>
         <table className="t">
           <thead>
             <tr><th></th><th><WithIcon Icon={Image}>Raster</WithIcon></th><th><WithIcon Icon={PenTool}>Vetorial</WithIcon></th></tr>
@@ -153,89 +106,12 @@ export const conceptSlides: SlideDef[] = [
             <tr><td>Mudar cores</td><td><No>Impossível</No></td><td><Yes>Basta trocar o estilo</Yes></td></tr>
             <tr><td>Girar / inclinar</td><td>Texto gira junto e fica ilegível</td><td>Rótulos sempre de pé, prédios em 3D</td></tr>
             <tr><td>Clicar e consultar</td><td><No>Só pixels</No></td><td><Yes><code>queryRenderedFeatures</code> devolve nome, tipo…</Yes></td></tr>
-            <tr><td>Exemplos hoje</td><td>Satélite, Topográfico, Ciclismo, Náutico</td><td>Ruas e Lojas, Minimalista, Noturno, Prédios 3D</td></tr>
+            <tr><td>Exemplos hoje</td><td>Satélite, Topográfico, Ciclismo, Ferrovias</td><td>Ruas e Lojas, Minimalista, Prédios 3D</td></tr>
           </tbody>
         </table>
         <Callout Icon={Info} tone="amber" className="mt">
           O MapLibre é especialista em <b>vetorial</b>, mas também exibe raster — é assim que conseguimos usar fontes como satélite e mapas temáticos.
         </Callout>
-      </>
-    ),
-  },
-  {
-    section: "Como funciona",
-    notes: "A pilha de camadas é como camadas do Photoshop. Próximo slide: vamos montar um estilo do zero e editá-lo ao vivo.",
-    Body: () => (
-      <>
-        <Kicker Icon={FileJson}>Conceito 3</Kicker>
-        <h2>O Style JSON: a receita do mapa</h2>
-        <div className="cols-2 grow">
-          <div>
-            <div className="flow col">
-              <div className="step"><b><Database /> sources</b>De onde vêm os dados: <I>vector</I>, <I>raster</I>, <I>raster-dem</I>, <I>geojson</I>, <I>image</I></div>
-              <div className="step"><b><Layers /> layers</b>Como desenhar, em ordem (a primeira fica embaixo): <I>fill</I>, <I>line</I>, <I>symbol</I>, <I>circle</I>, <I>fill-extrusion</I>, <I>raster</I>, <I>hillshade</I>, <I>heatmap</I>, <I>background</I></div>
-              <div className="step"><b><Type /> glyphs · sprite</b>Fontes para os textos e a folha de ícones (lojas, ônibus, hospitais…)</div>
-            </div>
-            <p className="small muted mt-s">Um estilo como o <b>Liberty</b> tem 111 camadas. Trocar o estilo = trocar a aparência inteira, sem mudar uma linha da lógica do app.</p>
-          </div>
-          <div className="layer-stack">
-            <div style={{ background: "#0f172a" }}><Type /> symbol — nomes de ruas e ícones de lojas</div>
-            <div style={{ background: "#1e3a8a" }}><Box /> fill-extrusion — prédios 3D</div>
-            <div style={{ background: "#2563eb" }}><PenTool /> line — ruas e avenidas</div>
-            <div style={{ background: "#0d9488" }}><Waves /> fill — água e parques</div>
-            <div style={{ background: "#94a3b8" }}><Paintbrush /> background — cor de fundo</div>
-            <p className="tiny muted" style={{ margin: ".4rem 0 0", textAlign: "center" }}>↑ desenhado por último · ↓ desenhado primeiro</p>
-          </div>
-        </div>
-      </>
-    ),
-  },
-  {
-    section: "Como funciona",
-    notes: "Demonstração ao vivo: mude a cor da água para rosa e a largura das ruas. Os dados (vector tiles da OpenFreeMap) são os mesmos; só o estilo muda. Este mesmo objeto poderia ir em mapStyle={...} no app.",
-    Body: () => (
-      <>
-        <Kicker Icon={PenTool}>Ao vivo · edite o JSON</Kicker>
-        <h2 style={{ marginBottom: "1rem" }}>Seu primeiro estilo, do zero</h2>
-        <Playground />
-      </>
-    ),
-  },
-  {
-    section: "Como funciona",
-    notes: "Vamos usar exatamente o match por tipo na demo de GeoJSON mais à frente.",
-    Body: () => (
-      <>
-        <Kicker Icon={Braces}>Conceito 4</Kicker>
-        <h2>Expressões: estilo guiado pelos dados</h2>
-        <div className="cols-2 grow">
-          <div>
-            <ul className="clean">
-              <li><I>["get", "campo"]</I> lê um atributo da feature.</li>
-              <li><I>["match", …]</I> escolhe um valor por categoria.</li>
-              <li><I>["interpolate", …]</I> varia suavemente com o zoom ou um número.</li>
-              <li><I>filter</I> decide quais features entram na camada.</li>
-            </ul>
-            <Callout Icon={Info} className="mt-s">As expressões são avaliadas para cada feature, a cada quadro — funcionam igual na web e no celular.</Callout>
-          </div>
-          <CodePanel title="expressões" icon={<Braces />} blocks={[{ lang: "typescript", code: `// Cor do círculo conforme a categoria do ponto
-"circle-color": [
-  "match", ["get", "tipo"],
-  "museu",  "#7c3aed",
-  "parque", "#16a34a",
-  "#e11d48"            // valor padrão
-],
-
-// Largura da rua cresce com o zoom
-"line-width": [
-  "interpolate", ["linear"], ["zoom"],
-  10, 0.5,             // no zoom 10 → 0,5 px
-  18, 14               // no zoom 18 → 14 px
-],
-
-// Mostrar só os POIs de comércio
-"filter": ["==", ["get", "class"], "shop"]` }]} />
-        </div>
       </>
     ),
   },

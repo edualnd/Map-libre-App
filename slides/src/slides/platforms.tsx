@@ -1,5 +1,5 @@
-import { ArrowLeftRight, Ban, Download, FileCode2, Globe, LocateFixed, Scale, Smartphone, Terminal, TriangleAlert } from "lucide-react";
-import { CodePanel, CodeTabs } from "../components/Code";
+import { ArrowLeftRight, Ban, Download, FileCode2, Globe, Scale, Smartphone, Terminal, TriangleAlert } from "lucide-react";
+import { CodePanel } from "../components/Code";
 import { Callout, I, Kicker, WithIcon } from "../components/ui";
 import type { SlideDef } from "../deck/Deck";
 
@@ -48,20 +48,19 @@ export const platformSlides: SlideDef[] = [
         <Kicker Icon={ArrowLeftRight}>Lado a lado</Kicker>
         <h2>O mesmo mapa nas duas APIs</h2>
         <div className="cols-2 grow">
-          <CodePanel title="App — declarativo" icon={<Smartphone />} file="App.tsx" blocks={[{ lang: "typescript", code: `import { Map, Camera, UserLocation }
-  from "@maplibre/maplibre-react-native";
+          <CodePanel title="App — declarativo" icon={<Smartphone />} file="App.tsx" blocks={[{ lang: "typescript", code: `import { Map, Camera } from "@maplibre/maplibre-react-native";
 
 export default function App() {
   return (
     <Map
       style={{ flex: 1 }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
+      compass                     // bússola
     >
       <Camera initialViewState={{
-        center: [-46.63, -23.55],  // [lng, lat]
+        center: [-45.411, -23.622],  // [lng, lat] — Caraguatatuba
         zoom: 14,
       }} />
-      <UserLocation />
     </Map>
   );
 }` }]} />
@@ -71,13 +70,11 @@ import "maplibre-gl/dist/maplibre-gl.css";
 const map = new maplibregl.Map({
   container: "map",            // <div id="map">
   style: "https://tiles.openfreemap.org/styles/liberty",
-  center: [-46.63, -23.55],    // [lng, lat]
+  center: [-45.411, -23.622],  // [lng, lat] — Caraguatatuba
   zoom: 14,
 });
 
-map.addControl(new maplibregl.GeolocateControl({
-  trackUserLocation: true,     // ponto azul
-}));` }]} />
+map.addControl(new maplibregl.NavigationControl()); // zoom + bússola` }]} />
         </div>
         <Callout Icon={TriangleAlert} tone="teal" className="mt-s">
           Nos dois casos as coordenadas são <b>[longitude, latitude]</b> — a ordem do GeoJSON. Inverter é o erro nº 1 (o mapa vai parar no oceano).
@@ -101,7 +98,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 new maplibregl.Map({
   container: "map",
   style: "https://tiles.openfreemap.org/styles/positron",
-  center: [-46.63, -23.55],
+  center: [-45.411, -23.622], // Caraguatatuba
   zoom: 12,
 });` },
           ]} />
@@ -117,7 +114,7 @@ new maplibregl.Map({
   new maplibregl.Map({
     container: "map",
     style: "https://tiles.openfreemap.org/styles/liberty",
-    center: [-46.63, -23.55],
+    center: [-45.411, -23.622], // Caraguatatuba
     zoom: 12,
   });
 </script>` }]} />
@@ -173,66 +170,6 @@ npx expo start` }]} />
         <Callout Icon={Ban} tone="rose" className="mt-s">
           <b>Expo Go não funciona</b>: o MapLibre traz código nativo. Use o <i>development build</i> (passo 3) ou gere o APK. A v11 exige a <b>Nova Arquitetura</b> do React Native (padrão no Expo SDK 52+).
         </Callout>
-      </>
-    ),
-  },
-  {
-    section: "Web × App",
-    notes: "Mostre a troca de abas App/Web aqui — a escolha vale para todos os slides seguintes.",
-    Body: () => (
-      <>
-        <Kicker Icon={LocateFixed}>Permissões</Kicker>
-        <h2>Localização do usuário</h2>
-        <div className="cols-2 grow">
-          <CodeTabs
-            app={{ file: "App.tsx", code: `import * as Location from "expo-location";
-
-const [location, setLocation] = useState<[number, number] | null>(null);
-
-useEffect(() => {
-  (async () => {
-    // 1. Pede permissão em tempo de execução (obrigatório!)
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return; // usa um local padrão
-
-    // 2. Lê o GPS
-    const pos = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-    setLocation([pos.coords.longitude, pos.coords.latitude]);
-  })();
-}, []);
-
-// 3. No JSX: ponto azul com círculo de precisão
-<UserLocation accuracy heading />` }}
-            web={{ file: "App.web.tsx", code: `// O navegador pede a permissão sozinho
-const geolocate = new maplibregl.GeolocateControl({
-  positionOptions: { enableHighAccuracy: true },
-  trackUserLocation: true,   // segue o usuário
-  showAccuracyCircle: true,
-});
-map.addControl(geolocate, "bottom-right");
-
-// Centraliza assim que o mapa terminar de carregar
-map.on("load", () => geolocate.trigger());
-
-geolocate.on("geolocate", (e) => {
-  console.log(e.coords.latitude, e.coords.longitude);
-});
-
-// Atenção: só funciona em HTTPS (ou localhost)` }}
-          />
-          <div>
-            <ul className="clean">
-              <li><b>App:</b> declarar no <I>app.json</I> <i>e</i> pedir em tempo de execução. Sem o pedido, o mapa abre no lugar errado.</li>
-              <li><b>Web:</b> o <I>GeolocateControl</I> chama <I>navigator.geolocation</I> e desenha o ponto azul.</li>
-              <li>Sempre tenha um <b>fallback</b> (ex.: centro de São Paulo) se o usuário negar.</li>
-            </ul>
-            <Callout Icon={LocateFixed} className="mt-s">
-              No nosso app: <I>getLastKnownPositionAsync()</I> primeiro (instantâneo) e depois <I>getCurrentPositionAsync()</I> (preciso).
-            </Callout>
-          </div>
-        </div>
       </>
     ),
   },

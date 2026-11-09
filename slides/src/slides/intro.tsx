@@ -1,11 +1,12 @@
 import {
-  ArrowRight, Atom, Blocks, CalendarClock, CircleCheck, CircleHelp, CreditCard, FileJson, GitFork, Globe,
-  KeyRound, Layers, Lightbulb, Lock, Package, Rocket, Scale, Server, Smartphone, Sparkles, Users,
+  ArrowRight, Atom, Blocks, CircleHelp, FileJson, GitFork, Globe, Layers, Package, Rocket, Scale, Server,
+  Smartphone, Sparkles, ThumbsDown, ThumbsUp, Users,
 } from "lucide-react";
+import logo from "../assets/maplibre-logo.svg";
 import type maplibregl from "maplibre-gl";
 import { LiveMap } from "../components/LiveMap";
-import { Callout, Card, I, IconBox, Kicker } from "../components/ui";
-import { OFM } from "../data/demos";
+import { Callout, Card, I, IconBox, Kicker, WithIcon } from "../components/ui";
+import { CARAGUA, OFM } from "../data/demos";
 import type { SlideDef } from "../deck/Deck";
 
 function spin(map: maplibregl.Map) {
@@ -18,12 +19,12 @@ export const introSlides: SlideDef[] = [
   {
     section: "Abertura",
     variant: "cover",
-    notes: "Boas-vindas. O mapa ao fundo já é MapLibre rodando no navegador, com prédios 3D da Av. Paulista. Hoje: o que é, como funciona, como instalar, diferenças web × app, API e 13 demonstrações ao vivo. Use ← → para navegar e N para notas.",
+    notes: "Boas-vindas. O mapa ao fundo já é MapLibre rodando no navegador, sobre o centro de Caraguatatuba. Hoje: o que é, como funciona, como instalar, a biblioteca construída passo a passo, tipos de mapas e o Style JSON. Use ← → para navegar e N para notas.",
     Body: () => (
       <>
         <LiveMap
           controls={false}
-          options={{ style: `${OFM}/liberty`, center: [-46.6565, -23.5618], zoom: 15.6, pitch: 62, bearing: -20, interactive: false }}
+          options={{ style: `${OFM}/liberty`, center: CARAGUA, zoom: 15.2, pitch: 62, bearing: -20, interactive: false }}
           setup={spin}
         />
         <div className="veil" />
@@ -42,53 +43,15 @@ export const introSlides: SlideDef[] = [
     ),
   },
   {
-    section: "Abertura",
-    notes: "Explique o formato: tudo que aparece é interativo — dá para arrastar, dar zoom e girar os mapas. A aba escolhida (App/Web) vale para todos os slides.",
-    Body: () => (
-      <>
-        <Kicker Icon={CalendarClock}>Roteiro · 25 minutos</Kicker>
-        <h2>O que vamos ver</h2>
-        <div className="agenda">
-          <div><b>O que é o MapLibre e por que ele existe</b><i>3 min</i></div>
-          <div><b>Como um mapa digital funciona: tiles e estilos</b><i>4 min</i></div>
-          <div><b>Web × App e instalação passo a passo</b><i>4 min</i></div>
-          <div><b>Principais componentes, funções e atributos</b><i>4 min</i></div>
-          <div><b>Demonstrações: 13 mapas com 13 finalidades</b><i>8 min</i></div>
-          <div><b>Build, armadilhas e próximos passos</b><i>2 min</i></div>
-        </div>
-        <Callout Icon={Lightbulb} className="mt">
-          Em cada demonstração: <b>mapa ao vivo à esquerda</b> e, à direita, o código que gera aquele mapa — por padrão no formato <b>App (Android/iOS)</b>, com uma aba <b>Web</b> ao lado.
-        </Callout>
-      </>
-    ),
-  },
-  {
     section: "O que é",
     variant: "section",
     notes: "Transição para a parte conceitual.",
     Body: () => (
       <>
         <div className="num">01</div>
+        <img className="section-logo" src={logo} alt="MapLibre" />
         <h2>O que é o MapLibre?</h2>
         <p>Uma família de bibliotecas open source para desenhar mapas interativos — no navegador e em apps nativos.</p>
-      </>
-    ),
-  },
-  {
-    section: "O que é",
-    notes: "Não é que Google/Mapbox sejam ruins — mas para projetos acadêmicos, ONGs e startups, custo e dependência importam. MapLibre separa o motor (renderização) da gasolina (dados).",
-    Body: () => (
-      <>
-        <Kicker Icon={CircleHelp}>Motivação</Kicker>
-        <h2>Por que não usar só o Google Maps?</h2>
-        <div className="cols-3">
-          <Card Icon={CreditCard} tone="rose" title="Custo por uso">Serviços comerciais cobram por carregamento de mapa ou por requisição de tiles depois de uma cota gratuita.</Card>
-          <Card Icon={KeyRound} tone="amber" title="Chave e conta">Exigem API key, cartão cadastrado e regras de uso que podem mudar a qualquer momento.</Card>
-          <Card Icon={Lock} tone="violet" title="Aprisionamento">Estilo, dados e SDK amarrados a um fornecedor. Trocar depois significa reescrever o app.</Card>
-        </div>
-        <Callout Icon={CircleCheck} tone="teal" className="mt">
-          <b>MapLibre:</b> o motor de renderização é livre (licença BSD). Você escolhe de onde vêm os dados — servidor próprio, provedor pago ou projetos gratuitos como <b>OpenFreeMap</b> e <b>OpenStreetMap</b>.
-        </Callout>
       </>
     ),
   },
@@ -118,6 +81,53 @@ export const introSlides: SlideDef[] = [
             <li>Usa a <b>MapLibre Style Spec</b>: o mesmo JSON de estilo funciona em todas as plataformas.</li>
           </ul>
         </div>
+      </>
+    ),
+  },
+  {
+    section: "O que é",
+    notes: "Não é que as outras sejam ruins — cada uma tem seu lugar. Google tem os melhores dados; Leaflet é o mais simples; OpenLayers é o mais completo para GIS. O MapLibre junta motor vetorial moderno, licença livre e suporte a web + celular, com o custo de você escolher (ou hospedar) os dados.",
+    Body: () => (
+      <>
+        <Kicker Icon={CircleHelp}>Motivação</Kicker>
+        <h2>Por que MapLibre? Comparando as opções</h2>
+        <table className="t compare">
+          <thead>
+            <tr><th>Biblioteca</th><th><WithIcon Icon={ThumbsUp}>Pontos fortes</WithIcon></th><th><WithIcon Icon={ThumbsDown}>Pontos fracos</WithIcon></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Google Maps</td>
+              <td>Dados e POIs mais completos, Street View, Places e rotas integrados</td>
+              <td>Cobra por uso após a cota grátis, exige API key + cartão, estilização limitada, código fechado</td>
+            </tr>
+            <tr>
+              <td>Mapbox GL</td>
+              <td>Vetorial de alta qualidade, 3D e globo, editor de estilos (Studio), SDKs web e mobile</td>
+              <td>Licença proprietária desde a v2, cobra por carregamento, exige token — aprisionamento ao fornecedor</td>
+            </tr>
+            <tr>
+              <td>Leaflet</td>
+              <td>Muito leve e simples, enorme coleção de plugins, open source</td>
+              <td>Focado em raster, sem girar/inclinar nem 3D, vetorial só via plugins, apenas web</td>
+            </tr>
+            <tr>
+              <td>OpenLayers</td>
+              <td>Muito completo para GIS: projeções, WMS/WFS, vários formatos; open source</td>
+              <td>API extensa e verbosa, curva de aprendizado maior, apenas web</td>
+            </tr>
+            <tr>
+              <td>react-native-maps</td>
+              <td>Fácil de usar no React Native / Expo, usa os mapas nativos do sistema</td>
+              <td>Preso ao Google / Apple Maps (API key no Android), pouca customização, sem web</td>
+            </tr>
+            <tr className="hl">
+              <td>MapLibre</td>
+              <td>Open source (BSD), sem API key, vetorial na GPU, 3D/globo/terreno, mesmo estilo na web e no celular, dados de qualquer fonte</td>
+              <td>Não traz dados próprios (tiles, busca, rotas): você escolhe ou hospeda; não roda no Expo Go</td>
+            </tr>
+          </tbody>
+        </table>
       </>
     ),
   },

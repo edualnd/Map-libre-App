@@ -1,14 +1,9 @@
-import { useRef } from "react";
-import maplibregl from "maplibre-gl";
-import {
-  ChefHat, Clapperboard, Image, Info, LayoutGrid, Map as MapIcon, MapPin, MousePointerClick, Mountain,
-  Navigation, PenTool, Plane, RotateCw, Rotate3d, ShieldAlert, Video,
-} from "lucide-react";
+import { ChefHat, Image, Info, LayoutGrid, Mountain, PenTool, ShieldAlert } from "lucide-react";
 import { CodePanel, CodeTabs } from "../components/Code";
 import { LiveMap } from "../components/LiveMap";
 import { Callout, Html, I, IconBox, Kicker, Tag, type Tone } from "../components/ui";
 import {
-  DEMOS, OFM, PLACES, PONTOS, RASTER_HELPER, appCode, pascal, toRuntimeStyle, webCode, type Demo, type Kind,
+  DEMOS, RASTER_HELPER, appCode, pascal, toRuntimeStyle, webCode, type Demo, type Kind,
 } from "../data/demos";
 import type { SlideDef } from "../deck/Deck";
 
@@ -51,215 +46,9 @@ function DemoSlide({ d, i }: { d: Demo; i: number }) {
   );
 }
 
-/* ---------- Câmera ao vivo ---------- */
-function CameraDemo() {
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const fly = (center: [number, number]) => mapRef.current?.flyTo({ center, zoom: 12, duration: 4000, pitch: 0 });
-  return (
-    <div className="demo-grid">
-      <LiveMap
-        badge={<><MousePointerClick /> Clique nos botões abaixo</>}
-        options={{ style: `${OFM}/liberty`, center: PLACES.sp, zoom: 11 }}
-        setup={(m) => { mapRef.current = m; return () => { mapRef.current = null; }; }}
-      >
-        <div className="map-buttons">
-          <button onClick={() => fly(PLACES.sp)}><Plane /> São Paulo</button>
-          <button onClick={() => fly(PLACES.rio)}><Plane /> Rio de Janeiro</button>
-          <button onClick={() => fly(PLACES.bsb)}><Plane /> Brasília</button>
-          <button onClick={() => mapRef.current?.easeTo({ pitch: 60, zoom: 16, duration: 1500 })}><Rotate3d /> Inclinar 3D</button>
-          <button onClick={() => { const m = mapRef.current; m?.rotateTo(m.getBearing() + 180, { duration: 3000 }); }}><RotateCw /> Girar 180°</button>
-          <button onClick={() => mapRef.current?.easeTo({ pitch: 0, bearing: 0, zoom: 12, duration: 1000 })}><Navigation /> Vista de cima</button>
-        </div>
-      </LiveMap>
-      <div className="demo-side">
-        <div className="demo-head">
-          <IconBox Icon={Video} tone="violet" size="lg" />
-          <div><Tag Icon={Clapperboard}>Interatividade</Tag><h2>Câmera em ação</h2></div>
-        </div>
-        <p className="demo-purpose">Animações de câmera para guiar o usuário: voar até um lugar, inclinar para 3D e girar.</p>
-        <CodeTabs
-          app={{ file: "CameraDemo.tsx", code: `import { useRef } from "react";
-import { Button, View } from "react-native";
-import { Map, Camera, type CameraRef } from "@maplibre/maplibre-react-native";
-
-export default function CameraDemo() {
-  const camera = useRef<CameraRef>(null);
-
-  const irPara = (center: [number, number]) =>
-    camera.current?.flyTo({ center, zoom: 12, duration: 4000 });
-
-  return (
-    <View style={{ flex: 1 }}>
-      <Map style={{ flex: 1 }}
-        mapStyle="https://tiles.openfreemap.org/styles/liberty">
-        <Camera ref={camera}
-          initialViewState={{ center: [-46.6339, -23.5503], zoom: 11 }} />
-      </Map>
-
-      <Button title="Rio de Janeiro"
-        onPress={() => irPara([-43.1729, -22.9068])} />
-      <Button title="Brasília"
-        onPress={() => irPara([-47.8645, -15.7998])} />
-      <Button title="Inclinar 3D"
-        onPress={() => camera.current?.setStop({ pitch: 60, zoom: 16, duration: 1500 })} />
-      <Button title="Vista de cima"
-        onPress={() => camera.current?.setStop({ pitch: 0, bearing: 0, duration: 1000 })} />
-    </View>
-  );
-}` }}
-          web={{ file: "camera.js", code: `const map = new maplibregl.Map({
-  container: "map",
-  style: "https://tiles.openfreemap.org/styles/liberty",
-  center: [-46.6339, -23.5503],
-  zoom: 11,
-});
-
-// Voa até o Rio (afasta → viaja → aproxima)
-map.flyTo({ center: [-43.1729, -22.9068], zoom: 12, duration: 4000 });
-
-// Inclina para ver os prédios em 3D
-map.easeTo({ pitch: 60, zoom: 16, duration: 1500 });
-
-// Gira 180° em relação à rotação atual
-map.rotateTo(map.getBearing() + 180, { duration: 3000 });
-
-// Volta para a vista de cima
-map.easeTo({ pitch: 0, bearing: 0, duration: 1000 });` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ---------- GeoJSON ao vivo ---------- */
-function setupPontos(map: maplibregl.Map) {
-  map.on("load", () => {
-    map.addSource("pontos", { type: "geojson", data: PONTOS });
-    map.addLayer({
-      id: "pontos-circulo", type: "circle", source: "pontos",
-      paint: {
-        "circle-radius": 9,
-        "circle-color": ["match", ["get", "tipo"], "museu", "#7c3aed", "parque", "#16a34a", "mercado", "#d97706", "#e11d48"],
-        "circle-stroke-width": 3,
-        "circle-stroke-color": "#ffffff",
-      },
-    });
-    map.addLayer({
-      id: "pontos-nome", type: "symbol", source: "pontos",
-      layout: { "text-field": ["get", "nome"], "text-font": ["Noto Sans Bold"], "text-size": 13, "text-offset": [0, 1.2], "text-anchor": "top" },
-      paint: { "text-halo-color": "#ffffff", "text-halo-width": 2 },
-    });
-    map.on("click", "pontos-circulo", (e) => {
-      const p = e.features?.[0]?.properties as { nome: string; tipo: string } | undefined;
-      if (p) new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<b>${p.nome}</b><br>${p.tipo}`).addTo(map);
-    });
-    map.on("mouseenter", "pontos-circulo", () => (map.getCanvas().style.cursor = "pointer"));
-    map.on("mouseleave", "pontos-circulo", () => (map.getCanvas().style.cursor = ""));
-  });
-}
-
-function GeoJsonDemo() {
-  return (
-    <div className="demo-grid">
-      <LiveMap
-        badge={<><MousePointerClick /> Clique em um ponto</>}
-        options={{ style: `${OFM}/positron`, center: [-46.645, -23.556], zoom: 12.6 }}
-        setup={setupPontos}
-      />
-      <div className="demo-side">
-        <div className="demo-head">
-          <IconBox Icon={MapPin} tone="rose" size="lg" />
-          <div><Tag tone="rose">Seus dados</Tag><h2>GeoJSON + camadas</h2></div>
-        </div>
-        <p className="demo-purpose">Pontos próprios sobre uma base neutra, coloridos por categoria com <I>match</I> e com clique.</p>
-        <CodeTabs
-          app={{ file: "MeusPontos.tsx", code: `import { Alert } from "react-native";
-import { Map, Camera, GeoJSONSource, Layer } from "@maplibre/maplibre-react-native";
-import { PONTOS } from "./pontos"; // GeoJSON FeatureCollection
-
-export default function MeusPontos() {
-  return (
-    <Map style={{ flex: 1 }}
-      mapStyle="https://tiles.openfreemap.org/styles/positron">
-      <Camera initialViewState={{ center: [-46.645, -23.556], zoom: 12.6 }} />
-
-      <GeoJSONSource
-        id="pontos"
-        data={PONTOS}
-        onPress={(e) => {
-          const p = e.nativeEvent.features[0]?.properties;
-          if (p) Alert.alert(p.nome, p.tipo);
-        }}
-      >
-        <Layer id="pontos-circulo" type="circle" paint={{
-          "circle-radius": 9,
-          "circle-color": ["match", ["get", "tipo"],
-            "museu", "#7c3aed", "parque", "#16a34a",
-            "mercado", "#d97706", "#e11d48"],
-          "circle-stroke-width": 3,
-          "circle-stroke-color": "#ffffff",
-        }} />
-        <Layer id="pontos-nome" type="symbol"
-          layout={{
-            "text-field": ["get", "nome"],
-            "text-font": ["Noto Sans Bold"],
-            "text-size": 13,
-            "text-offset": [0, 1.2],
-            "text-anchor": "top",
-          }}
-          paint={{ "text-halo-color": "#ffffff", "text-halo-width": 2 }} />
-      </GeoJSONSource>
-    </Map>
-  );
-}` }}
-          web={{ file: "pontos.js", code: `map.on("load", () => {
-  map.addSource("pontos", { type: "geojson", data: PONTOS });
-
-  map.addLayer({
-    id: "pontos-circulo", type: "circle", source: "pontos",
-    paint: {
-      "circle-radius": 9,
-      "circle-color": ["match", ["get", "tipo"],
-        "museu", "#7c3aed", "parque", "#16a34a",
-        "mercado", "#d97706", "#e11d48"],
-      "circle-stroke-width": 3,
-      "circle-stroke-color": "#ffffff",
-    },
-  });
-
-  map.addLayer({
-    id: "pontos-nome", type: "symbol", source: "pontos",
-    layout: {
-      "text-field": ["get", "nome"],
-      "text-font": ["Noto Sans Bold"],
-      "text-size": 13,
-      "text-offset": [0, 1.2],
-      "text-anchor": "top",
-    },
-    paint: { "text-halo-color": "#ffffff", "text-halo-width": 2 },
-  });
-
-  // Clique em um ponto → popup
-  map.on("click", "pontos-circulo", (e) => {
-    const p = e.features[0].properties;
-    new maplibregl.Popup()
-      .setLngLat(e.lngLat)
-      .setHTML(\`<b>\${p.nome}</b><br>\${p.tipo}\`)
-      .addTo(map);
-  });
-  map.on("mouseenter", "pontos-circulo", () => {
-    map.getCanvas().style.cursor = "pointer";
-  });
-});` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 /* ---------- Lista de slides ---------- */
 const rasterRecipe: SlideDef = {
-  section: "Demonstrações",
+  section: "Tipos de mapas",
   notes: "É só uma função que transforma uma lista de URLs de tiles em um Style JSON válido.",
   Body: () => (
     <>
@@ -274,7 +63,7 @@ const rasterRecipe: SlideDef = {
             <li>O objeto resultante vai direto em <I>mapStyle</I> (app) ou <I>style</I> (web).</li>
           </ul>
           <Callout Icon={Info} className="mt-s">
-            Próximas demos usam este helper: Satélite, Topográfico, Explorador, Ciclismo, Transporte, Ferrovias, Náutico e Serviços.
+            Próximas demos usam este helper: Satélite, Topográfico, Ciclismo, Transporte e Ferrovias.
           </Callout>
         </div>
         <CodePanel title="mapModes.ts" file="compartilhado app + web" blocks={[{ lang: "typescript", code: RASTER_HELPER }]} />
@@ -285,24 +74,24 @@ const rasterRecipe: SlideDef = {
 
 export const demoSlides: SlideDef[] = [
   {
-    section: "Demonstrações",
+    section: "Tipos de mapas",
     variant: "section",
-    notes: "Lembre: dá para interagir com cada mapa. A aba App/Web vale para todas as demos.",
+    notes: "O código de todas estas demos é o dos passos 1 a 3 (Map + Camera + UserLocation). O que muda é só o mapStyle — é aqui que mostramos a diferença entre vetorial, raster e elevação.",
     Body: () => (
       <>
         <div className="num">05</div>
-        <h2>Demonstrações</h2>
-        <p>13 mapas com 13 finalidades — todos ao vivo, todos com o código ao lado.</p>
+        <h2>Estilização: tipos de mapas</h2>
+        <p>Mesmo código do passo a passo, receitas diferentes: {DEMOS.length} mapas com finalidades diferentes — vetoriais, de elevação e raster.</p>
       </>
     ),
   },
   {
-    section: "Demonstrações",
-    notes: "Visão geral antes das demos individuais. Azul = vetorial (desenhado no aparelho), verde = raster (imagem pronta), laranja = elevação.",
+    section: "Tipos de mapas",
+    notes: "Visão geral antes das demos individuais. Na ordem em que aparecem: azul = vetorial (desenhado no aparelho), laranja = elevação, verde = raster (imagem pronta).",
     Body: () => (
       <>
         <Kicker Icon={LayoutGrid}>Catálogo</Kicker>
-        <h2>Os 13 mapas do nosso app</h2>
+        <h2>{DEMOS.length} mapas, {DEMOS.length} finalidades</h2>
         <div className="modes">
           {DEMOS.map((d) => (
             <div key={d.id} className="mode" style={{ borderTop: `.3rem solid ${KIND[d.kind].color}` }}>
@@ -311,35 +100,20 @@ export const demoSlides: SlideDef[] = [
               <span className="src">{d.source}</span>
             </div>
           ))}
-          <div className="mode" style={{ borderTop: ".3rem solid var(--rose)" }}>
-            <IconBox Icon={MapIcon} tone="rose" size="sm" />
-            <b>+ 2 extras</b>
-            <span className="src">Câmera animada e GeoJSON próprio</span>
-          </div>
           <div className="mode legend" style={{ background: "transparent", borderStyle: "dashed" }}>
             <div><i style={{ background: "var(--accent)" }} />vetorial</div>
-            <div><i style={{ background: "var(--teal)" }} />raster</div>
             <div><i style={{ background: "var(--amber)" }} />elevação</div>
+            <div><i style={{ background: "var(--teal)" }} />raster</div>
           </div>
         </div>
         <Callout Icon={Info} className="mt">
-          Todos vivem em <I>mapModes.ts</I> — uma lista compartilhada por <I>App.tsx</I> (Android/iOS) e <I>App.web.tsx</I> (navegador).
+          Todos vêm de <I>mapModes.ts</I> — uma lista compartilhada por <I>App.tsx</I> (Android/iOS) e <I>App.web.tsx</I> (navegador).
         </Callout>
       </>
     ),
   },
   ...DEMOS.flatMap((d, i): SlideDef[] => {
-    const slide: SlideDef = { section: "Demonstrações", notes: d.notes, Body: () => <DemoSlide d={d} i={i} /> };
+    const slide: SlideDef = { section: "Tipos de mapas", notes: d.notes, Body: () => <DemoSlide d={d} i={i} /> };
     return d.id === "satellite" ? [rasterRecipe, slide] : [slide];
   }),
-  {
-    section: "Demonstrações",
-    notes: "Clique em Rio, depois Brasília: veja a curva do flyTo. Depois Inclinar 3D em São Paulo e Girar.",
-    Body: CameraDemo,
-  },
-  {
-    section: "Demonstrações",
-    notes: "Aqui juntamos tudo: fonte GeoJSON, duas camadas (círculo e texto), expressão match e evento de clique. Clique no MASP ou no Ibirapuera.",
-    Body: GeoJsonDemo,
-  },
 ];
