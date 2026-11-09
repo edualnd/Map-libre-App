@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# gerado pelo postinstall (worker do maplibre-gl para a web)
+public/maplibre-gl-worker.mjs
