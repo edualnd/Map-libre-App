@@ -106,7 +106,7 @@ export const conceptSlides: SlideDef[] = [
             <tr><td>Mudar cores</td><td><No>Impossível</No></td><td><Yes>Basta trocar o estilo</Yes></td></tr>
             <tr><td>Girar / inclinar</td><td>Texto gira junto e fica ilegível</td><td>Rótulos sempre de pé, prédios em 3D</td></tr>
             <tr><td>Clicar e consultar</td><td><No>Só pixels</No></td><td><Yes><code>queryRenderedFeatures</code> devolve nome, tipo…</Yes></td></tr>
-            <tr><td>Exemplos hoje</td><td>Satélite, Topográfico, Ciclismo, Ferrovias</td><td>Ruas e Lojas, Minimalista, Prédios 3D</td></tr>
+            <tr><td>Exemplos hoje</td><td>Satélite, Topográfico, Ciclismo, Ferrovias</td><td>Ruas e Lojas, Prédios 3D</td></tr>
           </tbody>
         </table>
         <Callout Icon={Info} tone="amber" className="mt">

@@ -8,7 +8,7 @@ import {
 import { CodeTabs } from "../components/Code";
 import { LiveMap } from "../components/LiveMap";
 import { IconBox, Tag } from "../components/ui";
-import { CARAGUA, OFM, PONTOS } from "../data/demos";
+import { CARAGUA, OFM, PONTOS, print } from "../data/demos";
 import type { SlideDef } from "../deck/Deck";
 
 /* ------------------------------------------------------------------ */
@@ -24,6 +24,7 @@ type Step = {
   items: ApiItem[];
   app: { file: string; code: string };
   web: { file: string; code: string };
+  extra?: { file: string; code: string; note?: string };
 };
 
 const TOTAL = 6;
@@ -50,7 +51,7 @@ function StepSlide({ n, step, map }: { n: number; step: Step; map: ReactNode }) 
             </div>
           ))}
         </div>
-        <CodeTabs app={step.app} web={step.web} />
+        <CodeTabs app={step.app} web={step.web} extra={step.extra} />
       </div>
     </div>
   );
@@ -590,6 +591,11 @@ function iconImage(Icon: LucideIcon, cor: string): Promise<HTMLImageElement> {
 }
 
 const stepGeoJson: Step = {
+  extra: {
+    file: "pontos.json",
+    code: print(PONTOS, 0, true),
+    note: "Cada ponto é uma Feature: coordinates em [longitude, latitude]; properties viram atributos lidos com [\"get\", \"tipo\"]. Dá para desenhar os seus em geojson.io.",
+  },
   title: "Seus dados: GeoJSON + <Layer>",
   Icon: MapPin,
   purpose: "Pontos próprios desenhados pelo motor do mapa: praias como círculos; museu e mirante com ícones próprios.",
@@ -606,7 +612,7 @@ const stepGeoJson: Step = {
 import {
   Map, Camera, GeoJSONSource, Layer, Images,
 } from "@maplibre/maplibre-react-native";
-import { PONTOS } from "./pontos"; // GeoJSON: praias e pontos de Caraguatatuba
+import PONTOS from "./pontos.json"; // o arquivo da aba pontos.json
 
 export default function App() {
   return (
@@ -622,7 +628,7 @@ export default function App() {
 
       <GeoJSONSource
         id="pontos"
-        data={PONTOS}
+        data={PONTOS as GeoJSON.FeatureCollection}
         onPress={(e) => {
           const p = e.nativeEvent.features[0]?.properties;
           if (p) Alert.alert(p.nome, p.tipo);
@@ -664,7 +670,10 @@ export default function App() {
   },
   web: {
     file: "mapa.js",
-    code: `const COM_ICONE = ["in", ["get", "tipo"], ["literal", ["museu", "mirante"]]];
+    code: `import PONTOS from "./pontos.json"; // o arquivo da aba pontos.json
+// (ou passe a URL direto: data: "/pontos.json")
+
+const COM_ICONE = ["in", ["get", "tipo"], ["literal", ["museu", "mirante"]]];
 
 map.on("load", async () => {
   // Registra os ícones com um nome
@@ -886,7 +895,7 @@ export const buildSlides: SlideDef[] = [
     "Clique em uma loja ou rua: o nome vem de queryRenderedFeatures — só funciona porque o mapa é vetorial. Arraste e veja o moveend atualizar."),
   stepSlide(5, stepGeoJson, () => (
     <LiveMap badge={<><MousePointerClick /> Clique em um ponto</>} options={{ style: `${OFM}/positron`, ...PONTOS_VIEW }} setup={setupPontos} />
-  ), "Fonte + camadas: o mesmo modelo dos estilos. Praias são círculos; museu e mirante usam ícones registrados com <Images> (app) / addImage (web) e escolhidos por icon-image. A cor vem da expressão match sobre o atributo tipo — voltamos a ela na seção de Style JSON."),
+  ), "Mostre a aba pontos.json: é ali que entram os seus pontos (geojson.io ajuda a criar). Fonte + camadas: o mesmo modelo dos estilos. Praias são círculos; museu e mirante usam ícones registrados com <Images> (app) / addImage (web) e escolhidos por icon-image. A cor vem da expressão match sobre o atributo tipo — voltamos a ela na seção de Style JSON."),
   stepSlide(6, stepRaster, () => <RasterMap />,
     "Diferença de filosofia: no app, mudar o estado do React re-renderiza a camada; na web, chamamos setPaintProperty/setLayoutProperty. Dê zoom no canal de São Sebastião para ver as boias."),
 ];
