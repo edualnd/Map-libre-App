@@ -120,7 +120,8 @@ table.t code { font-family: "JetBrains Mono", monospace; font-size: .9em; color:
 .code-bar .copy svg { width: .9rem; height: .9rem; }
 .code-bar .copy:hover { color: #fff; }
 .code pre { margin: 0; padding: 1rem 1.2rem; overflow: auto; flex: 1; min-height: 0; font-size: .9rem; line-height: 1.55; }
-.code pre + pre { border-top: 1px solid #1d2943; flex: none; }
+.code pre + pre { border-top: 1px solid #1d2943; }
+.code pre:has(+ pre) { flex: none; } /* blocos curtos em cima (ex.: npm install) não esticam */
 .code pre code { font-family: "JetBrains Mono", monospace; color: #dbe4ff; white-space: pre; }
 .code pre, .code code, .editor, code.i { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
 .code .note { display: flex; align-items: center; gap: .4rem; font-size: .82rem; color: #8ea0c6; padding: .5rem 1.2rem .7rem; border-top: 1px solid #1d2943; }
@@ -185,8 +186,8 @@ table.t code { font-family: "JetBrains Mono", monospace; font-size: .9em; color:
 .flow .step b svg { width: 1.2rem; height: 1.2rem; color: var(--accent); }
 .flow .arrow { align-self: center; color: var(--accent); }
 .flow .arrow svg { width: 1.8rem; height: 1.8rem; }
-.layer-stack { display: flex; flex-direction: column; gap: .45rem; justify-content: center; }
-.layer-stack div { display: flex; align-items: center; gap: .6rem; padding: .55rem 1rem; border-radius: .55rem; font-size: 1rem; font-weight: 600; color: #fff; }
+.layer-stack { display: flex; flex-direction: column; gap: .45rem; }
+.layer-stack div { flex: 1; display: flex; align-items: center; gap: .6rem; padding: .55rem 1rem; border-radius: .55rem; font-size: 1rem; font-weight: 600; color: #fff; }
 .layer-stack div svg { width: 1.1rem; height: 1.1rem; }
 
 .modes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; }

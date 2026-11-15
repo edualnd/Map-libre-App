@@ -474,7 +474,7 @@ export const styleSlides: SlideDef[] = [
       <>
         <Kicker Icon={FileJson}>Style JSON · 1 de 3</Kicker>
         <h2>O Style JSON: a receita do mapa</h2>
-        <div className="cols-2 grow">
+        <div className="cols-2 grow" style={{ alignContent: "start" }}>
           <div>
             <div className="flow col">
               <div className="step"><b><Database /> sources</b>De onde vêm os dados: <I>vector</I>, <I>raster</I>, <I>raster-dem</I>, <I>geojson</I>, <I>image</I></div>
