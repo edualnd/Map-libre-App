@@ -2,14 +2,15 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import maplibregl from "maplibre-gl";
 import {
-  Anchor, Binoculars, Camera as CameraIcon, CircleDot, Crop, Eye, Footprints, Layers, Landmark, LocateFixed, Map as MapIcon, MapPin, MapPinned,
-  MousePointerClick, Navigation, Plane, RotateCw, Rotate3d, SunDim, type LucideIcon,
+  Binoculars, Camera as CameraIcon, CircleDot, Crop, Footprints, Landmark, LocateFixed, Map as MapIcon, MapPin, MapPinned,
+  Hand, MousePointerClick, Navigation, Plane, RotateCw, Rotate3d, type LucideIcon,
 } from "lucide-react";
 import { CodeTabs } from "../components/Code";
 import { LiveMap } from "../components/LiveMap";
 import { IconBox, Tag } from "../components/ui";
 import { CARAGUA, OFM, PONTOS, print } from "../data/demos";
 import type { SlideDef } from "../deck/Deck";
+import { geometrySlide } from "./geometries";
 
 /* ------------------------------------------------------------------ */
 /* Estrutura comum de um passo                                         */
@@ -27,7 +28,7 @@ type Step = {
   extra?: { file: string; code: string; note?: string };
 };
 
-const TOTAL = 6;
+const TOTAL = 5;
 
 function StepSlide({ n, step, map }: { n: number; step: Step; map: ReactNode }) {
   return (
@@ -395,29 +396,34 @@ const LUGARES: { nome: string; lngLat: [number, number] }[] = [
   { nome: "Ilhabela", lngLat: [-45.3578, -23.7774] },
   { nome: "São Sebastião", lngLat: [-45.3987, -23.8037] },
 ];
-const MORRO: [number, number] = [-45.4014, -23.609];
 const LITORAL_NORTE: [[number, number], [number, number]] = [[-45.75, -23.95], [-44.95, -23.35]];
 const fmtLugares = LUGARES.map((l) => `  { nome: "${l.nome}", lngLat: [${l.lngLat.join(", ")}] },`).join("\n");
 
-const stepCamera: Step = {
+type Gestos = { dragPan: boolean; touchRotate: boolean };
+
+function markersStep({ dragPan, touchRotate }: Gestos): Step {
+  // Gesto ligado = padrão (não precisa escrever); desligado = prop={false}
+  const gesto = (on: boolean, name: string, comment: string) =>
+    on ? `        // ${name} ligado (padrão): ${comment}` : `        ${name}={false}`.padEnd(30) + `// sem ${comment}`;
+  return {
   title: "Câmera e marcadores",
   Icon: Plane,
   purpose: "Marcadores presos a coordenadas e, com uma ref para a <Camera>, animações: escolha uma cidade ou toque em um marcador e a câmera voa até lá.",
   items: [
-    { name: "<Marker>", kind: "componente", desc: "View React viva (botões funcionam); só tem onPress" },
-    { name: "<ViewAnnotation>", kind: "componente", desc: "Arrastável, selecionável, com <Callout>; no Android vira imagem" },
-    { name: "onSelect · onDrag · onDragEnd", kind: "evento", desc: "Eventos que só o ViewAnnotation tem" },
+    { name: "<Marker>", kind: "componente", desc: "Qualquer View presa a um lngLat (anchor)" },
+    { name: "onPress", kind: "evento", desc: "Toque no marcador → voar até ele" },
     { name: "flyTo()", kind: "função", desc: "Efeito avião: afasta, viaja e aproxima" },
     { name: "setStop() · easeTo()", kind: "função", desc: "Muda pitch, bearing ou zoom com transição" },
     { name: "fitBounds()", kind: "função", desc: "Enquadra um retângulo: [oeste, sul, leste, norte]" },
+    { name: "queryRenderedFeatures()", kind: "função", desc: "O que está desenhado em um pixel" },
+    { name: "touchRotate · dragPan", kind: "atributo", desc: "Liga/desliga gestos (touchPitch, touchZoom…)" },
   ],
   app: {
     file: "App.tsx",
     code: `import { useRef, useState } from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
 import {
-  Map, Camera, Marker, ViewAnnotation, Callout,
-  type CameraRef, type LngLat,
+  Map, Camera, Marker, type CameraRef, type MapRef, type LngLat,
 } from "@maplibre/maplibre-react-native";
 
 const LUGARES: { nome: string; lngLat: LngLat }[] = [
@@ -426,16 +432,23 @@ ${fmtLugares}
 
 export default function App() {
   const camera = useRef<CameraRef>(null);
-  const [morro, setMorro] = useState<LngLat>([${MORRO.join(", ")}]);
-  const [evento, setEvento] = useState("");
+  const map = useRef<MapRef>(null);
+  const [tocado, setTocado] = useState("Toque no mapa");
 
   const voarPara = (lngLat: LngLat) =>
     camera.current?.flyTo({ center: lngLat, zoom: 14, duration: 4000 });
 
   return (
     <View style={{ flex: 1 }}>
-      <Map style={{ flex: 1 }}
-        mapStyle="https://tiles.openfreemap.org/styles/liberty">
+      <Map ref={map} style={{ flex: 1 }}
+        mapStyle="https://tiles.openfreemap.org/styles/liberty"
+${gesto(dragPan, "dragPan", "arrastar o mapa com um dedo")}
+${gesto(touchRotate, "touchRotate", "girar com dois dedos")}
+        onPress={async (e) => {
+          // O que está desenhado no pixel tocado (ruas, lojas, bairros…)
+          const features = await map.current?.queryRenderedFeatures(e.nativeEvent.point);
+          setTocado(features?.find((f) => f.properties?.name)?.properties?.name ?? "sem nome");
+        }}>
         <Camera ref={camera}
           initialViewState={{ center: ${C}, zoom: 10 }} />
 
@@ -447,23 +460,9 @@ export default function App() {
           </Marker>
         ))}
 
-        {/* ViewAnnotation: arrastável, selecionável e com balão (Callout).
-            No Android vira uma imagem: leve, mas sem botões dentro */}
-        <ViewAnnotation id="morro" lngLat={morro} anchor="bottom"
-          title="Morro Santo Antônio" snippet="Mirante"
-          draggable
-          onSelect={() => setEvento("onSelect")}
-          onDeselect={() => setEvento("onDeselect")}
-          onDragStart={() => setEvento("onDragStart")}
-          onDrag={(e) => setEvento(\`onDrag \${e.nativeEvent.lngLat}\`)}
-          onDragEnd={(e) => setMorro(e.nativeEvent.lngLat)}>
-          <View style={styles.mirante}><Text style={styles.verde}>Mirante</Text></View>
-          <Callout title="Morro Santo Antônio — me arraste!"
-            contentStyle={styles.balao} titleStyle={styles.verde} />
-        </ViewAnnotation>
       </Map>
 
-      <Text>{evento}</Text>
+      <Text>{tocado}</Text>
 
       {/* Um botão por cidade */}
       {LUGARES.map((l) => (
@@ -482,9 +481,6 @@ export default function App() {
 
 const styles = StyleSheet.create({
   pin: { backgroundColor: "#fff", padding: 6, borderRadius: 8, borderWidth: 2, borderColor: "#e11d48" },
-  mirante: { backgroundColor: "#fff", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, borderWidth: 1.5, borderColor: "#16a34a" },
-  verde: { color: "#166534", fontSize: 12 },
-  balao: { borderRadius: 8, padding: 8 },
 });`,
   },
   web: {
@@ -507,21 +503,15 @@ for (const l of LUGARES) {
 
 // Botões de cidade: <button onclick="voarPara([-45.3578, -23.7774])">Ilhabela</button>
 
-// O papel do ViewAnnotation: elemento próprio, arrastável e com balão
-const el = document.createElement("div");
-el.className = "mirante";               // visual definido no CSS
-el.textContent = "Mirante";
-const balao = new maplibregl.Popup({ offset: 40, className: "balao" })
-  .setHTML("<b>Morro Santo Antônio</b><br>me arraste!");
-const morro = new maplibregl.Marker({ element: el, anchor: "bottom", draggable: true })
-  .setLngLat([${MORRO.join(", ")}])
-  .setPopup(balao)                      // clique abre/fecha = selecionar
-  .addTo(map);
-balao.on("open", () => console.log("selecionado"));     // ≈ onSelect
-balao.on("close", () => console.log("deselecionado"));  // ≈ onDeselect
-morro.on("dragstart", () => console.log("começou"));    // ≈ onDragStart
-morro.on("drag", () => console.log(morro.getLngLat())); // ≈ onDrag
-morro.on("dragend", () => console.log("solto"));        // ≈ onDragEnd
+// O que está desenhado no pixel clicado
+map.on("click", (e) => {
+  const f = map.queryRenderedFeatures(e.point).find((f) => f.properties.name);
+  console.log(f?.properties.name ?? "sem nome");
+});
+
+// Gestos: cada um é um handler com enable()/disable()
+${dragPan ? "// map.dragPan ligado (padrão)" : "map.dragPan.disable();                 // sem arrastar"}
+${touchRotate ? "// rotação ligada (padrão)" : "map.dragRotate.disable();              // sem girar com o mouse\nmap.touchZoomRotate.disableRotation(); // sem girar com dois dedos"}
 
 // Funções de câmera ficam no próprio map
 map.easeTo({ pitch: 60, zoom: 16, duration: 1500 });       // inclinar
@@ -529,15 +519,31 @@ map.rotateTo(map.getBearing() + 180, { duration: 3000 });  // girar
 map.fitBounds([[${LITORAL_NORTE[0].join(", ")}], [${LITORAL_NORTE[1].join(", ")}]]);  // Litoral Norte
 map.easeTo({ pitch: 0, bearing: 0, duration: 1000 });      // vista de cima`,
   },
-};
+  };
+}
 
-function CameraMap() {
+function CameraStepSlide3() {
+  const [g, setG] = useState<Gestos>({ dragPan: true, touchRotate: true });
+  return <StepSlide n={3} step={markersStep(g)} map={<CameraMap g={g} setG={setG} />} />;
+}
+
+function CameraMap({ g, setG }: { g: Gestos; setG: (g: Gestos) => void }) {
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const [marker, setMarker] = useState("Clique em um pino vermelho");
-  const [va, setVa] = useState("Clique e arraste o Mirante verde");
+  const [marker, setMarker] = useState("Clique em um marcador");
+  const [query, setQuery] = useState("Clique em uma rua, loja ou bairro");
+
+  // Liga/desliga os gestos no mapa ao vivo
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    if (g.dragPan) m.dragPan.enable(); else m.dragPan.disable();
+    if (g.touchRotate) { m.dragRotate.enable(); m.touchZoomRotate.enableRotation(); }
+    else { m.dragRotate.disable(); m.touchZoomRotate.disableRotation(); }
+  }, [g]);
+
   return (
     <LiveMap
-      badge={<><MapPinned /> Pinos vermelhos = Marker · Mirante = ViewAnnotation</>}
+      badge={<><MapPinned /> Clique nos marcadores</>}
       options={{ style: LIBERTY, center: CARAGUA, zoom: 10 }}
       setup={(m) => {
         mapRef.current = m;
@@ -551,30 +557,17 @@ function CameraMap() {
             m.flyTo({ center: l.lngLat, zoom: 14, pitch: 0, bearing: 0, duration: 4000 });
           });
         }
-
-        // ViewAnnotation: elemento próprio, arrastável, selecionável e com balão estilizado
-        const el = document.createElement("div");
-        el.className = "va-pin";
-        el.innerHTML = renderToStaticMarkup(<Binoculars size={12} strokeWidth={2.2} />) + "<span>Mirante</span>";
-        const fmt = (p: maplibregl.LngLat) => `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`;
-        const balao = new maplibregl.Popup({ offset: 40, className: "va-callout", closeButton: false });
-        const morro = new maplibregl.Marker({ element: el, anchor: "bottom", draggable: true })
-          .setLngLat(MORRO)
-          .setPopup(balao)
-          .addTo(m);
-        const texto = () => balao.setHTML(`<b>Morro Santo Antônio</b><span>me arraste!</span><code>${fmt(morro.getLngLat())}</code>`);
-        texto();
-        balao.on("open", () => { el.classList.add("on"); setVa("onSelect → balão aberto"); });
-        balao.on("close", () => { el.classList.remove("on"); setVa("onDeselect → balão fechado"); });
-        morro.on("dragstart", () => setVa("onDragStart"));
-        morro.on("drag", () => { setVa(`onDrag → ${fmt(morro.getLngLat())}`); texto(); });
-        morro.on("dragend", () => { setVa(`onDragEnd → solto em ${fmt(morro.getLngLat())}`); texto(); });
+        m.on("click", (e) => {
+          if ((e.originalEvent.target as HTMLElement).closest(".maplibregl-marker")) return; // clique no marcador
+          const f = m.queryRenderedFeatures(e.point).find((x) => x.properties?.name);
+          setQuery(`${f?.properties?.name ?? "sem nome"} (camada ${f?.layer.id ?? "—"})`);
+        });
         return () => { mapRef.current = null; };
       }}
     >
       <div className="map-info top">
-        <div><b>Marker · eventos</b>{marker}</div>
-        <div><b>ViewAnnotation · eventos</b>{va}</div>
+        <div><b>Marker · onPress</b>{marker}</div>
+        <div><b>queryRenderedFeatures</b>{query}</div>
       </div>
       <div className="map-buttons">
         {[{ nome: "Caraguatatuba", lngLat: CARAGUA }, ...LUGARES].map((l) => (
@@ -584,6 +577,9 @@ function CameraMap() {
         <button onClick={() => { const m = mapRef.current; m?.rotateTo(m.getBearing() + 180, { duration: 3000 }); }}><RotateCw /> Girar 180°</button>
         <button onClick={() => mapRef.current?.fitBounds(LITORAL_NORTE, { pitch: 0, bearing: 0 })}><Crop /> Litoral Norte</button>
         <button onClick={() => mapRef.current?.easeTo({ pitch: 0, bearing: 0, duration: 1000 })}><Navigation /> Vista de cima</button>
+        {(["dragPan", "touchRotate"] as const).map((k) => (
+          <button key={k} className={g[k] ? "on" : ""} onClick={() => setG({ ...g, [k]: !g[k] })}><Hand /> {k}</button>
+        ))}
       </div>
     </LiveMap>
   );
@@ -875,106 +871,6 @@ function setupPontos(map: maplibregl.Map) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Passo 6 — RasterSource + propriedades dinâmicas                     */
-/* ------------------------------------------------------------------ */
-const SEAMARKS = "https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png";
-
-const stepRaster: Step = {
-  title: "Camadas extras: <RasterSource>",
-  Icon: Layers,
-  purpose: "Empilhar outra fonte por cima da base — aqui, boias e faróis do canal de São Sebastião — e mudar a camada em tempo real.",
-  items: [
-    { name: "<RasterSource>", kind: "componente", desc: "Tiles raster: tiles, tileSize, attribution" },
-    { name: "<VectorSource>", kind: "componente", desc: "O mesmo para tiles vetoriais" },
-    { name: "raster-opacity", kind: "atributo", desc: "Propriedade de paint da camada raster" },
-    { name: "visibility", kind: "atributo", desc: "Propriedade de layout: visible · none" },
-    { name: "setPaintProperty()", kind: "função", desc: "Web: muda uma camada que já existe" },
-  ],
-  app: {
-    file: "App.tsx",
-    code: `import { useState } from "react";
-import { Button, View } from "react-native";
-import { Map, Camera, RasterSource, Layer } from "@maplibre/maplibre-react-native";
-
-export default function App() {
-  const [visivel, setVisivel] = useState(true);
-  const [opacidade, setOpacidade] = useState(1);
-
-  return (
-    <View style={{ flex: 1 }}>
-      <Map style={{ flex: 1 }}
-        mapStyle="https://tiles.openfreemap.org/styles/positron">
-        <Camera initialViewState={{ center: ${C}, zoom: 11 }} />
-
-        <RasterSource id="nautico"
-          tiles={["${SEAMARKS}"]}
-          tileSize={256}
-          attribution="© OpenSeaMap">
-          <Layer id="nautico" type="raster"
-            paint={{ "raster-opacity": opacidade }}
-            layout={{ visibility: visivel ? "visible" : "none" }} />
-        </RasterSource>
-      </Map>
-
-      {/* Mudou o estado → o React atualiza a camada */}
-      <Button title="Mostrar/ocultar" onPress={() => setVisivel(!visivel)} />
-      <Button title="Opacidade 30%" onPress={() => setOpacidade(0.3)} />
-    </View>
-  );
-}`,
-  },
-  web: {
-    file: "mapa.js",
-    code: `map.on("load", () => {
-  map.addSource("nautico", {
-    type: "raster",
-    tiles: ["${SEAMARKS}"],
-    tileSize: 256,
-    attribution: "© OpenSeaMap",
-  });
-  map.addLayer({ id: "nautico", type: "raster", source: "nautico" });
-});
-
-// Funções que alteram uma camada já existente
-map.setPaintProperty("nautico", "raster-opacity", 0.3);
-map.setLayoutProperty("nautico", "visibility", "none");
-
-// Remover de vez
-map.removeLayer("nautico");
-map.removeSource("nautico");`,
-  },
-};
-
-function RasterMap() {
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const [visible, setVisible] = useState(true);
-  const opacity = (v: number) => mapRef.current?.setPaintProperty("nautico", "raster-opacity", v);
-  return (
-    <LiveMap
-      badge={<><Anchor /> Positron + OpenSeaMap</>}
-      options={{ style: `${OFM}/positron`, center: CARAGUA, zoom: 11 }}
-      setup={(m) => {
-        mapRef.current = m;
-        m.on("load", () => {
-          m.addSource("nautico", { type: "raster", tiles: [SEAMARKS], tileSize: 256, maxzoom: 18, attribution: "© OpenSeaMap" });
-          m.addLayer({ id: "nautico", type: "raster", source: "nautico" });
-        });
-        return () => { mapRef.current = null; };
-      }}
-    >
-      <div className="map-buttons">
-        <button onClick={() => {
-          mapRef.current?.setLayoutProperty("nautico", "visibility", visible ? "none" : "visible");
-          setVisible(!visible);
-        }}><Eye /> {visible ? "Ocultar" : "Mostrar"} boias</button>
-        <button onClick={() => opacity(1)}><SunDim /> Opacidade 100%</button>
-        <button onClick={() => opacity(0.3)}><SunDim /> Opacidade 30%</button>
-      </div>
-    </LiveMap>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /* Lista de slides                                                     */
 /* ------------------------------------------------------------------ */
 const stepSlide = (n: number, step: Step, map: () => ReactNode, notes: string): SlideDef => ({
@@ -1006,13 +902,15 @@ export const buildSlides: SlideDef[] = [
     notes: "Clique em Minha localização: o navegador pede a permissão. Se ele não conseguir a posição (comum no Chrome do Linux, sem serviço de localização), o slide simula o ponto azul em Caraguatatuba. Use Girar e mostre a bússola apontando o norte (clicar nela volta para 0°). Troque accuracy, compass, scaleBar e attribution entre true e false: o elemento aparece/some no mapa e o código muda junto (accuracy = círculo com a margem de erro do GPS). No app, a permissão vem do hook useForegroundPermissions e precisa do plugin do expo-location no app.json.",
     Body: LocationStepSlide,
   },
-  stepSlide(3, stepCamera, () => <CameraMap />,
-    "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Compare os dois: o Marker (pinos vermelhos) só dispara onPress; o ViewAnnotation (Mirante) é selecionável (onSelect/onDeselect abrem o balão), arrastável (onDragStart/onDrag/onDragEnd) e tem Callout estilizável — o painel no topo mostra cada evento. Em troca, no Android o ViewAnnotation é desenhado como imagem: botões dentro dele não funcionam (use Marker para isso). Depois Inclinar 3D e Girar. Para milhares de pontos, use GeoJSONSource + Layer (passo 5)."),
+  {
+    section: "Passo a passo",
+    Body: CameraStepSlide3,
+    notes: "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Depois Inclinar 3D e Girar. Clique numa rua ou loja (fora dos marcadores): queryRenderedFeatures devolve o que está desenhado ali. Desligue dragPan e tente arrastar; desligue touchRotate e tente girar com o botão direito — o código muda junto. Para milhares de pontos, use GeoJSONSource + Layer (passo 5).",
+  },
   stepSlide(4, stepEvents, () => <EventsMap />,
     "Clique em uma loja ou rua: o nome vem de queryRenderedFeatures — só funciona porque o mapa é vetorial. Arraste e veja o moveend atualizar."),
   stepSlide(5, stepGeoJson, () => (
     <LiveMap badge={<><MousePointerClick /> Clique em um ponto</>} options={{ style: `${OFM}/positron`, ...PONTOS_VIEW }} setup={setupPontos} />
-  ), "Mostre a aba pontos.json: é ali que entram os seus pontos (geojson.io ajuda a criar). Fonte + camadas: o mesmo modelo dos estilos. Praias são círculos; museu e mirante usam ícones registrados com <Images> (app) / addImage (web) e escolhidos por icon-image. A cor vem da expressão match sobre o atributo tipo — voltamos a ela na seção de Style JSON."),
-  stepSlide(6, stepRaster, () => <RasterMap />,
-    "Diferença de filosofia: no app, mudar o estado do React re-renderiza a camada; na web, chamamos setPaintProperty/setLayoutProperty. Dê zoom no canal de São Sebastião para ver as boias."),
+  ), "Mostre a aba pontos.json: é ali que entram os seus pontos (geojson.io ajuda a criar). Fonte + camadas: o mesmo modelo dos estilos. Praias são círculos; museu e mirante usam ícones registrados com <Images> (app) / addImage (web) e escolhidos por icon-image. A cor vem da expressão match sobre o atributo tipo."),
+  geometrySlide,
 ];

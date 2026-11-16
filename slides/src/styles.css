@@ -280,14 +280,6 @@ table.t.compare tr.hl td:first-child { color: var(--accent); }
 
 /* Popups do mapa: texto escuro sobre o balão branco padrão */
 .maplibregl-popup-content { color: #0f172a; font-size: .95rem; }
-/* ViewAnnotation (passo 3): pino próprio discreto + balão (Callout) */
-.va-pin { display: inline-flex; align-items: center; gap: .25rem; padding: .15rem .5rem; border-radius: 99px; background: #fff; color: #166534; font: 600 .75rem "Inter", sans-serif; border: 1.5px solid #16a34a; box-shadow: 0 .1rem .3rem rgba(0,0,0,.2); cursor: grab; }
-.va-pin svg { width: .8rem; height: .8rem; }
-.va-pin.on { background: #f0fdf4; }
-.va-pin:active { cursor: grabbing; }
-.va-callout .maplibregl-popup-content { display: grid; gap: .05rem; padding: .45rem .7rem; }
-.va-callout .maplibregl-popup-content span { font-size: .8rem; color: #64748b; }
-.va-callout .maplibregl-popup-content code { font: .75rem "JetBrains Mono", monospace; color: #166534; }
 .legend-row span { display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem; color: #c9d5ef; margin-right: .3rem; }
 .legend-row i { width: .7rem; height: .7rem; border-radius: 50%; border: 1.5px solid #fff; }
 .cam-row .swatch { display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; border: 1px solid rgba(255,255,255,.6); margin-right: .3rem; vertical-align: -.05rem; }
