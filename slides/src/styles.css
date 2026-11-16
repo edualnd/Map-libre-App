@@ -119,6 +119,13 @@ table.t code { font-family: "JetBrains Mono", monospace; font-size: .9em; color:
 .code-bar .copy { display: inline-flex; align-items: center; gap: .35rem; font: 600 .8rem "Inter", sans-serif; color: #93a3c4; background: #1a2440; border: 1px solid #263357; border-radius: .45rem; padding: .3rem .6rem; cursor: pointer; }
 .code-bar .copy svg { width: .9rem; height: .9rem; }
 .code-bar .copy:hover { color: #fff; }
+.code-bar .expand { margin-left: auto; }
+.code-bar :is(.file, .copy) ~ .expand { margin-left: 0; }
+.code-modal { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: 2.4rem 3.2rem; background: rgba(5, 9, 20, .78); backdrop-filter: blur(4px); animation: enter .2s ease; }
+.code.code-big { width: 100%; max-width: 110rem; max-height: 100%; }
+.code.code-big pre { font-size: 1.45rem; }
+.code.code-big .code-bar .tab { font-size: 1.1rem; }
+.code.code-big .note { font-size: 1.05rem; }
 .code pre { margin: 0; padding: 1rem 1.2rem; overflow: auto; flex: 1; min-height: 0; font-size: .9rem; line-height: 1.55; }
 .code pre + pre { border-top: 1px solid #1d2943; }
 .code pre:has(+ pre) { flex: none; } /* blocos curtos em cima (ex.: npm install) não esticam */

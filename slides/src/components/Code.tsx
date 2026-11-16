@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import hljs from "highlight.js/lib/core";
 import typescript from "highlight.js/lib/languages/typescript";
 import json from "highlight.js/lib/languages/json";
@@ -6,7 +7,7 @@ import bash from "highlight.js/lib/languages/bash";
 import xml from "highlight.js/lib/languages/xml";
 import plaintext from "highlight.js/lib/languages/plaintext";
 import "highlight.js/styles/github-dark.css";
-import { Check, Copy, FileCode2, FileJson, Globe, Info, Smartphone } from "lucide-react";
+import { Check, Copy, FileCode2, FileJson, Globe, Info, Maximize2, Smartphone, X } from "lucide-react";
 
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("json", json);
@@ -64,6 +65,54 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+/**
+ * Moldura dos painéis de código: barra + conteúdo, com um botão que abre
+ * o mesmo painel ampliado sobre o slide (fecha com Esc ou clique fora).
+ */
+function CodeFrame({ bar, children }: { bar: ReactNode; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    // Captura as teclas antes do Deck: enquanto o modal está aberto, as setas não trocam de slide
+    const onKey = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open]);
+
+  const host = document.querySelector(".deck");
+  return (
+    <>
+      <div className="code">
+        <div className="code-bar">
+          {bar}
+          <button className="copy expand" onClick={() => setOpen(true)} title="Ampliar código">
+            <Maximize2 /> Ampliar
+          </button>
+        </div>
+        {children}
+      </div>
+      {open && host && createPortal(
+        <div className="code-modal" onClick={() => setOpen(false)}>
+          <div className="code code-big" onClick={(e) => e.stopPropagation()}>
+            <div className="code-bar">
+              {bar}
+              <button className="copy expand" onClick={() => setOpen(false)} title="Fechar (Esc)">
+                <X /> Fechar
+              </button>
+            </div>
+            {children}
+          </div>
+        </div>,
+        host,
+      )}
+    </>
+  );
+}
+
 /** Painel de código com um título fixo (sem abas). Aceita vários blocos. */
 export function CodePanel({
   title, file, blocks, icon,
@@ -74,13 +123,12 @@ export function CodePanel({
   blocks: { code: string; lang: Lang }[];
 }) {
   return (
-    <div className="code">
-      <div className="code-bar">
-        <span className="tab on static">{icon ?? <FileCode2 />}{title}</span>
-        {file && <span className="file">{file}</span>}
-      </div>
+    <CodeFrame bar={<>
+      <span className="tab on static">{icon ?? <FileCode2 />}{title}</span>
+      {file && <span className="file">{file}</span>}
+    </>}>
       {blocks.map((b, i) => <Highlight key={i} code={b.code} lang={b.lang} />)}
-    </div>
+    </CodeFrame>
   );
 }
 
@@ -102,8 +150,7 @@ export function CodeTabs({
   const curNote = showExtra ? extra.note : note;
   const pick = (m: CodeMode) => { setExtraOn(false); setMode(m); };
   return (
-    <div className="code">
-      <div className="code-bar">
+    <CodeFrame bar={<>
         {extra && extraFirst && (
           <button className={`tab ${showExtra ? "on" : ""}`} onClick={() => setExtraOn(true)}>
             <FileJson /> {extra.file}
@@ -122,9 +169,9 @@ export function CodeTabs({
         )}
         <span className="file">{cur.file}</span>
         <CopyButton text={cur.code} />
-      </div>
+    </>}>
       <Highlight code={cur.code} lang={langOf(cur.file)} marks={showExtra ? extra.marks : undefined} />
       {curNote && <div className="note"><Info />{curNote}</div>}
-    </div>
+    </CodeFrame>
   );
 }
