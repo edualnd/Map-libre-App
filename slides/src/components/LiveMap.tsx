@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import maplibregl from "maplibre-gl";
 
 type Props = {
@@ -8,13 +8,14 @@ type Props = {
   badge?: ReactNode;
   controls?: boolean;
   children?: ReactNode;
+  style?: CSSProperties;
 };
 
 /**
  * Mapa MapLibre GL JS. É criado ao montar (quando o slide aparece) e
  * destruído ao desmontar — o navegador limita a quantidade de contextos WebGL.
  */
-export function LiveMap({ options, setup, badge, controls = true, children }: Props) {
+export function LiveMap({ options, setup, badge, controls = true, children, style }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +39,7 @@ export function LiveMap({ options, setup, badge, controls = true, children }: Pr
   }, []);
 
   return (
-    <div className="map">
+    <div className="map" style={style}>
       <div ref={ref} className="map-canvas" />
       {loading && <div className="loading">Carregando mapa…</div>}
       {badge && <div className="badge">{badge}</div>}

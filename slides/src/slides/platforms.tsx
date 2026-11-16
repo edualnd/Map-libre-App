@@ -1,7 +1,9 @@
-import { ArrowLeftRight, Ban, Download, FileCode2, Globe, Scale, Smartphone, Terminal, TriangleAlert } from "lucide-react";
+import { ArrowLeftRight, Ban, Download, FileCode2, Globe, MapPinned, Scale, Smartphone, Terminal, TriangleAlert } from "lucide-react";
 import { CodePanel } from "../components/Code";
+import { LiveMap } from "../components/LiveMap";
 import { Callout, I, Kicker, WithIcon } from "../components/ui";
 import type { SlideDef } from "../deck/Deck";
+import { CARAGUA, OFM } from "../data/demos";
 
 export const platformSlides: SlideDef[] = [
   {
@@ -47,7 +49,7 @@ export const platformSlides: SlideDef[] = [
       <>
         <Kicker Icon={ArrowLeftRight}>Lado a lado</Kicker>
         <h2>O mesmo mapa nas duas APIs</h2>
-        <div className="cols-2 grow">
+        <div className="cols-2" style={{ flex: 1.4, minHeight: 0 }}>
           <CodePanel title="App — declarativo" icon={<Smartphone />} file="App.tsx" blocks={[{ lang: "typescript", code: `import { Map, Camera } from "@maplibre/maplibre-react-native";
 
 export default function App() {
@@ -76,6 +78,11 @@ const map = new maplibregl.Map({
 
 map.addControl(new maplibregl.NavigationControl()); // zoom + bússola` }]} />
         </div>
+        <LiveMap
+          badge={<><MapPinned /> Resultado ao vivo: o mesmo mapa nas duas APIs</>}
+          options={{ style: `${OFM}/liberty`, center: CARAGUA, zoom: 14 }}
+          style={{ flex: 1, marginTop: "1rem" }}
+        />
         <Callout Icon={TriangleAlert} tone="teal" className="mt-s">
           Nos dois casos as coordenadas são <b>[longitude, latitude]</b> — a ordem do GeoJSON. Inverter é o erro nº 1 (o mapa vai parar no oceano).
         </Callout>
@@ -89,7 +96,7 @@ map.addControl(new maplibregl.NavigationControl()); // zoom + bússola` }]} />
       <>
         <Kicker Icon={Download}>Instalação · Web</Kicker>
         <h2>Na web: npm ou uma tag &lt;script&gt;</h2>
-        <div className="cols-2 grow">
+        <div className="cols-2" style={{ flex: 1.4, minHeight: 0 }}>
           <CodePanel title="Opção A — npm (com bundler)" icon={<Terminal />} blocks={[
             { lang: "bash", code: "npm install maplibre-gl" },
             { lang: "typescript", code: `import * as maplibregl from "maplibre-gl";
@@ -119,6 +126,11 @@ new maplibregl.Map({
   });
 </script>` }]} />
         </div>
+        <LiveMap
+          badge={<><MapPinned /> Resultado ao vivo: o código acima rodando</>}
+          options={{ style: `${OFM}/positron`, center: CARAGUA, zoom: 12 }}
+          style={{ flex: 1, marginTop: "1rem" }}
+        />
         <Callout Icon={TriangleAlert} tone="amber" className="mt-s">
           A <I>div</I> precisa ter altura definida, senão o mapa fica invisível.
         </Callout>
