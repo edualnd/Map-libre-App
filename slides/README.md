@@ -54,5 +54,5 @@ src/
 
 - O código das demonstrações é **gerado a partir dos mesmos dados que desenham o mapa** (`DEMOS` em `data/demos.ts`) — o que aparece na tela é o que roda.
 - Os slides usam `maplibre-gl@5.24` (build com worker embutido, sem configuração extra no Vite).
-- O mapa *Transporte* mostra o fallback web de propósito: o servidor ÖPNVKarte bloqueia navegadores (CORS).
+- O mapa *Transporte* usa um estilo vetorial próprio sobre o OpenFreeMap (o servidor ÖPNVKarte bloqueia navegadores por CORS).
 - Para adicionar um slide: crie um objeto `{ section, notes, Body }` no arquivo da parte certa.

@@ -1,9 +1,9 @@
-import { ChefHat, Image, Info, LayoutGrid, Mountain, PenTool, ShieldAlert } from "lucide-react";
-import { CodePanel, CodeTabs } from "../components/Code";
+import { Image, Info, LayoutGrid, Mountain, PenTool } from "lucide-react";
+import { CodeTabs } from "../components/Code";
 import { LiveMap } from "../components/LiveMap";
 import { Callout, Html, I, IconBox, Kicker, Tag, type Tone } from "../components/ui";
 import {
-  DEMOS, RASTER_HELPER, appCode, pascal, toRuntimeStyle, webCode, type Demo, type Kind,
+  DEMOS, appCode, pascal, toRuntimeStyle, webCode, type Demo, type Kind,
 } from "../data/demos";
 import type { SlideDef } from "../deck/Deck";
 
@@ -19,15 +19,14 @@ function DemoSlide({ d, i }: { d: Demo; i: number }) {
   return (
     <div className="demo-grid">
       <LiveMap
-        badge={d.badge ? <><ShieldAlert /> {d.badge}</> : <><k.Icon /> {k.label} · {d.source}</>}
-        options={{ style: toRuntimeStyle(d.webStyle ?? d.style), ...d.view }}
+        badge={<><k.Icon /> {k.label} · {d.source}</>}
+        options={{ style: toRuntimeStyle(d.style), ...d.view }}
       />
       <div className="demo-side">
         <div className="demo-head">
           <IconBox Icon={d.Icon} tone={k.tone} size="lg" />
           <div>
             <Tag tone={k.tag} Icon={k.Icon}>{d.kind}</Tag>
-            {d.cors && <Tag tone="rose" Icon={ShieldAlert}>CORS na web</Tag>}
             <Tag tone="gray">Demo {i + 1} de {DEMOS.length}</Tag>
             <h2>{d.label}</h2>
           </div>
@@ -39,7 +38,7 @@ function DemoSlide({ d, i }: { d: Demo; i: number }) {
         <CodeTabs
           app={{ file: `Mapa${pascal(d.id)}.tsx`, code: appCode(d) }}
           web={{ file: `mapa-${d.id}.js`, code: webCode(d) }}
-          note={"raster" in d.style ? "rasterStyle() está no slide \"Receita raster\" e em mapModes.ts" : undefined}
+          note={"raster" in d.style ? "rasterStyle() está em mapModes.ts" : undefined}
         />
       </div>
     </div>
@@ -47,31 +46,6 @@ function DemoSlide({ d, i }: { d: Demo; i: number }) {
 }
 
 /* ---------- Lista de slides ---------- */
-const rasterRecipe: SlideDef = {
-  section: "Tipos de mapas",
-  notes: "É só uma função que transforma uma lista de URLs de tiles em um Style JSON válido.",
-  Body: () => (
-    <>
-      <Kicker Icon={ChefHat}>Receita raster</Kicker>
-      <h2>Um helper para montar estilos raster</h2>
-      <div className="cols-2 grow">
-        <div>
-          <ul className="clean">
-            <li>Fontes raster não têm um Style JSON pronto: nós montamos um.</li>
-            <li>Cada item vira uma <I>source</I> + uma <I>layer</I> do tipo <I>raster</I>.</li>
-            <li>A ordem do array é a ordem de desenho — dá para empilhar <b>base + overlay</b>.</li>
-            <li>O objeto resultante vai direto em <I>mapStyle</I> (app) ou <I>style</I> (web).</li>
-          </ul>
-          <Callout Icon={Info} className="mt-s">
-            Próximas demos usam este helper: Satélite, Topográfico, Ciclismo, Transporte e Ferrovias.
-          </Callout>
-        </div>
-        <CodePanel title="mapModes.ts" file="compartilhado app + web" blocks={[{ lang: "typescript", code: RASTER_HELPER }]} />
-      </div>
-    </>
-  ),
-};
-
 export const demoSlides: SlideDef[] = [
   {
     section: "Tipos de mapas",
@@ -112,8 +86,5 @@ export const demoSlides: SlideDef[] = [
       </>
     ),
   },
-  ...DEMOS.flatMap((d, i): SlideDef[] => {
-    const slide: SlideDef = { section: "Tipos de mapas", notes: d.notes, Body: () => <DemoSlide d={d} i={i} /> };
-    return d.id === "satellite" ? [rasterRecipe, slide] : [slide];
-  }),
+  ...DEMOS.map((d, i): SlideDef => ({ section: "Tipos de mapas", notes: d.notes, Body: () => <DemoSlide d={d} i={i} /> })),
 ];
