@@ -28,7 +28,7 @@ type Step = {
   extra?: { file: string; code: string; note?: string };
 };
 
-const TOTAL = 5;
+const TOTAL = 4;
 
 function StepSlide({ n, step, map }: { n: number; step: Step; map: ReactNode }) {
   return (
@@ -445,9 +445,10 @@ export default function App() {
 ${gesto(dragPan, "dragPan", "arrastar o mapa com um dedo")}
 ${gesto(touchRotate, "touchRotate", "girar com dois dedos")}
         onPress={async (e) => {
-          // O que está desenhado no pixel tocado (ruas, lojas, bairros…)
-          const features = await map.current?.queryRenderedFeatures(e.nativeEvent.point);
-          setTocado(features?.find((f) => f.properties?.name)?.properties?.name ?? "sem nome");
+          const { point, lngLat } = e.nativeEvent;
+          const features = await map.current?.queryRenderedFeatures(point);
+          const nome = features?.find((f) => f.properties?.name)?.properties?.name ?? "sem nome";
+          setTocado(\`\${nome} · \${lngLat[1].toFixed(4)}, \${lngLat[0].toFixed(4)}\`);
         }}>
         <Camera ref={camera}
           initialViewState={{ center: ${C}, zoom: 10 }} />
@@ -506,7 +507,7 @@ for (const l of LUGARES) {
 // O que está desenhado no pixel clicado
 map.on("click", (e) => {
   const f = map.queryRenderedFeatures(e.point).find((f) => f.properties.name);
-  console.log(f?.properties.name ?? "sem nome");
+  console.log(f?.properties.name ?? "sem nome", e.lngLat.lat, e.lngLat.lng);
 });
 
 // Gestos: cada um é um handler com enable()/disable()
@@ -560,7 +561,7 @@ function CameraMap({ g, setG }: { g: Gestos; setG: (g: Gestos) => void }) {
         m.on("click", (e) => {
           if ((e.originalEvent.target as HTMLElement).closest(".maplibregl-marker")) return; // clique no marcador
           const f = m.queryRenderedFeatures(e.point).find((x) => x.properties?.name);
-          setQuery(`${f?.properties?.name ?? "sem nome"} (camada ${f?.layer.id ?? "—"})`);
+          setQuery(`${f?.properties?.name ?? "sem nome"} · ${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`);
         });
         return () => { mapRef.current = null; };
       }}
@@ -586,103 +587,7 @@ function CameraMap({ g, setG }: { g: Gestos; setG: (g: Gestos) => void }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Passo 4 — eventos e consultas                                       */
-/* ------------------------------------------------------------------ */
-const stepEvents: Step = {
-  title: "Reagir ao usuário: eventos",
-  Icon: MousePointerClick,
-  purpose: "Saber onde o usuário tocou, o que está desenhado ali e para onde ele moveu o mapa.",
-  items: [
-    { name: "onPress · onLongPress", kind: "evento", desc: "Toque: lngLat e point (pixel)" },
-    { name: "onRegionDidChange", kind: "evento", desc: "Disparado quando o mapa para de mover" },
-    { name: "queryRenderedFeatures()", kind: "função", desc: "O que está desenhado em um pixel" },
-    { name: "getCenter() · getZoom()", kind: "função", desc: "Lê o estado atual via ref do <Map>" },
-    { name: "touchRotate · dragPan", kind: "atributo", desc: "Liga/desliga gestos (touchPitch, touchZoom…)" },
-  ],
-  app: {
-    file: "App.tsx",
-    code: `import { useRef, useState } from "react";
-import { Alert, Text, View } from "react-native";
-import { Map, Camera, type MapRef } from "@maplibre/maplibre-react-native";
-
-export default function App() {
-  const map = useRef<MapRef>(null);
-  const [info, setInfo] = useState("Toque no mapa");
-
-  return (
-    <View style={{ flex: 1 }}>
-      <Map ref={map} style={{ flex: 1 }}
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
-        touchRotate={false}      // desliga girar com dois dedos
-        onPress={async (e) => {
-          const { lngLat, point } = e.nativeEvent;
-          const features = await map.current?.queryRenderedFeatures(point);
-          const f = features?.find((f) => f.properties?.name);
-          setInfo(\`\${f?.properties?.name ?? "sem nome"} · \${lngLat[1].toFixed(4)}, \${lngLat[0].toFixed(4)}\`);
-        }}
-        onLongPress={(e) => Alert.alert("Toque longo", e.nativeEvent.lngLat.join(", "))}
-        onRegionDidChange={async () => {
-          // Lê o estado atual pela ref do <Map> (no app, devolvem Promise)
-          const center = await map.current?.getCenter(); // [lng, lat]
-          const zoom = await map.current?.getZoom();
-          console.log("moveu para", center, "zoom", zoom);
-        }}
-      >
-        <Camera initialViewState={{ center: ${C}, zoom: 16 }} />
-      </Map>
-      <Text>{info}</Text>
-    </View>
-  );
-}`,
-  },
-  web: {
-    file: "mapa.js",
-    code: `// Clique: coordenada + o que está desenhado naquele pixel
-map.on("click", (e) => {
-  const f = map.queryRenderedFeatures(e.point)
-    .find((f) => f.properties.name);
-  info.textContent = \`\${f?.properties.name ?? "sem nome"} · \` +
-    \`\${e.lngLat.lat.toFixed(4)}, \${e.lngLat.lng.toFixed(4)}\`;
-});
-
-// Fim de qualquer movimento (arrastar, zoom, animação)
-map.on("moveend", () => {
-  console.log("moveu para", map.getCenter(), "zoom", map.getZoom());
-});
-
-// Liga/desliga gestos
-map.dragRotate.disable();
-map.touchZoomRotate.disableRotation();`,
-  },
-};
-
-function EventsMap() {
-  const [click, setClick] = useState("Clique em uma rua, loja ou praça");
-  const [view, setView] = useState("");
-  return (
-    <LiveMap
-      badge={<><MousePointerClick /> Clique e arraste o mapa</>}
-      options={{ style: LIBERTY, center: CARAGUA, zoom: 16 }}
-      setup={(m) => {
-        const show = () => setView(`centro ${m.getCenter().lat.toFixed(4)}, ${m.getCenter().lng.toFixed(4)} · zoom ${m.getZoom().toFixed(1)}`);
-        m.on("load", show);
-        m.on("moveend", show);
-        m.on("click", (e) => {
-          const f = m.queryRenderedFeatures(e.point).find((x) => x.properties?.name);
-          setClick(`${f?.properties?.name ?? "sem nome"} · ${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`);
-        });
-      }}
-    >
-      <div className="map-info">
-        <div><b>onPress / click</b>{click}</div>
-        <div><b>onRegionDidChange / moveend</b>{view || "…"}</div>
-      </div>
-    </LiveMap>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Passo 5 — GeoJSONSource + Layer                                     */
+/* Passo 4 — GeoJSONSource + Layer                                     */
 /* ------------------------------------------------------------------ */
 const PONTOS_VIEW = { center: [-45.37, -23.612] as [number, number], zoom: 12.2 };
 /** Tipos que ganham ícone próprio; os demais continuam como círculo. */
@@ -905,11 +810,9 @@ export const buildSlides: SlideDef[] = [
   {
     section: "Passo a passo",
     Body: CameraStepSlide3,
-    notes: "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Depois Inclinar 3D e Girar. Clique numa rua ou loja (fora dos marcadores): queryRenderedFeatures devolve o que está desenhado ali. Desligue dragPan e tente arrastar; desligue touchRotate e tente girar com o botão direito — o código muda junto. Para milhares de pontos, use GeoJSONSource + Layer (passo 5).",
+    notes: "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Depois Inclinar 3D e Girar. Clique numa rua ou loja (fora dos marcadores): queryRenderedFeatures devolve o que está desenhado ali. Desligue dragPan e tente arrastar; desligue touchRotate e tente girar com o botão direito — o código muda junto. Para milhares de pontos, use GeoJSONSource + Layer (passo 4).",
   },
-  stepSlide(4, stepEvents, () => <EventsMap />,
-    "Clique em uma loja ou rua: o nome vem de queryRenderedFeatures — só funciona porque o mapa é vetorial. Arraste e veja o moveend atualizar."),
-  stepSlide(5, stepGeoJson, () => (
+  stepSlide(4, stepGeoJson, () => (
     <LiveMap badge={<><MousePointerClick /> Clique em um ponto</>} options={{ style: `${OFM}/positron`, ...PONTOS_VIEW }} setup={setupPontos} />
   ), "Mostre a aba pontos.json: é ali que entram os seus pontos (geojson.io ajuda a criar). Fonte + camadas: o mesmo modelo dos estilos. Praias são círculos; museu e mirante usam ícones registrados com <Images> (app) / addImage (web) e escolhidos por icon-image. A cor vem da expressão match sobre o atributo tipo."),
   geometrySlide,

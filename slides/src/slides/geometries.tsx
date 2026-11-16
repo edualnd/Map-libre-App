@@ -213,6 +213,6 @@ function GeometrySlide() {
 
 export const geometrySlide: SlideDef = {
   section: "Passo a passo",
-  notes: "Complemento do passo 5: o GeoJSONSource aceita 7 tipos de geometry. Clique em cada botão do mapa e mostre a aba dados.json mudando — a diferença é a quantidade de colchetes. Polygon: o anel fecha repetindo o primeiro ponto, e o segundo anel é um buraco. Cada tipo é desenhado por uma layer diferente: circle (pontos), line (linhas e contornos), fill (áreas).",
+  notes: "Complemento do passo 4: o GeoJSONSource aceita 7 tipos de geometry. Clique em cada botão do mapa e mostre a aba dados.json mudando — a diferença é a quantidade de colchetes. Polygon: o anel fecha repetindo o primeiro ponto, e o segundo anel é um buraco. Cada tipo é desenhado por uma layer diferente: circle (pontos), line (linhas e contornos), fill (áreas).",
   Body: GeometrySlide,
 };
