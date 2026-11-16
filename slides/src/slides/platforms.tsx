@@ -20,7 +20,7 @@ export const platformSlides: SlideDef[] = [
   },
   {
     section: "Web × App",
-    notes: "Os dois pontos que mais pegam na prática: (1) o Expo Go não serve, precisa de dev build; (2) CORS na web — vamos ver isso acontecendo na demo de Transporte.",
+    notes: "O ponto que mais pega na prática: o Expo Go não serve, precisa de dev build.",
     Body: () => (
       <>
         <Kicker Icon={Scale}>Comparativo</Kicker>
@@ -35,7 +35,6 @@ export const platformSlides: SlideDef[] = [
             <tr><td>Estilo de API</td><td>Imperativa: <code>new Map()</code>, <code>map.addLayer()</code>, <code>map.on()</code></td><td>Declarativa: <code>{"<Map>"}</code>, <code>{"<Camera>"}</code>, <code>{"<Layer>"}</code></td></tr>
             <tr><td>Instalação</td><td><code>npm</code> ou uma tag <code>{"<script>"}</code> da CDN</td><td>Código nativo → precisa de <b>development build</b>; não roda no Expo Go</td></tr>
             <tr><td>Localização</td><td><code>navigator.geolocation</code> + <code>GeolocateControl</code> (exige HTTPS)</td><td>GPS nativo: <code>expo-location</code> + <code>{"<UserLocation>"}</code></td></tr>
-            <tr><td>Rede</td><td>Sujeito a <b>CORS</b> — o servidor de tiles precisa permitir</td><td>Sem CORS — qualquer servidor HTTP funciona</td></tr>
             <tr><td>Distribuição</td><td>Uma URL — atualiza na hora</td><td>APK / AAB / IPA via EAS e lojas</td></tr>
           </tbody>
         </table>
