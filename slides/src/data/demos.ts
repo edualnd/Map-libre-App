@@ -314,7 +314,12 @@ export const PLAYGROUND_STYLE: StyleSpecification = {
   layers: [
     { id: "fundo", type: "background", paint: { "background-color": "#ebe5da" } },
     { id: "agua", type: "fill", source: "openmaptiles", "source-layer": "water", paint: { "fill-color": "#9ec7e8" } },
-    { id: "parques", type: "fill", source: "openmaptiles", "source-layer": "park", paint: { "fill-color": "#b5dca5" } },
+    {
+      // class "conservation" = Áreas de Proteção Ambiental; a APA Marinha cobre o mar e o pintaria de verde
+      id: "parques", type: "fill", source: "openmaptiles", "source-layer": "park",
+      filter: ["!=", ["get", "class"], "conservation"],
+      paint: { "fill-color": "#b5dca5" },
+    },
     { id: "predios", type: "fill", source: "openmaptiles", "source-layer": "building", minzoom: 14, paint: { "fill-color": "#d3c7bb", "fill-outline-color": "#b8a998" } },
     {
       id: "ruas", type: "line", source: "openmaptiles", "source-layer": "transportation",
