@@ -86,7 +86,7 @@ export const introSlides: SlideDef[] = [
   },
   {
     section: "O que é",
-    notes: "Não é que as outras sejam ruins — cada uma tem seu lugar. Google tem os melhores dados; Leaflet é o mais simples; OpenLayers é o mais completo para GIS. O MapLibre junta motor vetorial moderno, licença livre e suporte a web + celular, com o custo de você escolher (ou hospedar) os dados.",
+    notes: "Não é que as outras sejam ruins — cada uma tem seu lugar. Google tem os melhores dados; expo-maps é o caminho oficial do Expo, mas ainda é alpha e preso aos mapas da Apple/Google. O MapLibre junta motor vetorial moderno, licença livre e suporte a web + celular, com o custo de você escolher (ou hospedar) os dados.",
     Body: () => (
       <>
         <Kicker Icon={CircleHelp}>Motivação</Kicker>
@@ -107,14 +107,9 @@ export const introSlides: SlideDef[] = [
               <td>Licença proprietária desde a v2, cobra por carregamento, exige token — aprisionamento ao fornecedor</td>
             </tr>
             <tr>
-              <td>Leaflet</td>
-              <td>Muito leve e simples, enorme coleção de plugins, open source</td>
-              <td>Focado em raster, sem girar/inclinar nem 3D, vetorial só via plugins, apenas web</td>
-            </tr>
-            <tr>
-              <td>OpenLayers</td>
-              <td>Muito completo para GIS: projeções, WMS/WFS, vários formatos; open source</td>
-              <td>API extensa e verbosa, curva de aprendizado maior, apenas web</td>
+              <td>expo-maps</td>
+              <td>Módulo oficial do Expo, API moderna em Jetpack Compose / SwiftUI, usa Apple Maps (iOS) e Google Maps (Android)</td>
+              <td>Ainda em alpha, sem web nem Expo Go, exige API key do Google no Android, plataformas com APIs diferentes</td>
             </tr>
             <tr>
               <td>react-native-maps</td>
