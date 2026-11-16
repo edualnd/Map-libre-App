@@ -404,16 +404,16 @@ const stepCamera: Step = {
   Icon: Plane,
   purpose: "Marcadores presos a coordenadas e, com uma ref para a <Camera>, animações: escolha uma cidade ou toque em um marcador e a câmera voa até lá.",
   items: [
-    { name: "<Marker>", kind: "componente", desc: "Qualquer View presa a um lngLat (anchor)" },
-    { name: "<ViewAnnotation>", kind: "componente", desc: "Arrastável; aceita um <Callout> (balão)" },
-    { name: "onPress · onDragEnd", kind: "evento", desc: "Toque no marcador e fim do arraste" },
+    { name: "<Marker>", kind: "componente", desc: "View React viva (botões funcionam); só tem onPress" },
+    { name: "<ViewAnnotation>", kind: "componente", desc: "Arrastável, selecionável, com <Callout>; no Android vira imagem" },
+    { name: "onSelect · onDrag · onDragEnd", kind: "evento", desc: "Eventos que só o ViewAnnotation tem" },
     { name: "flyTo()", kind: "função", desc: "Efeito avião: afasta, viaja e aproxima" },
     { name: "setStop() · easeTo()", kind: "função", desc: "Muda pitch, bearing ou zoom com transição" },
     { name: "fitBounds()", kind: "função", desc: "Enquadra um retângulo: [oeste, sul, leste, norte]" },
   ],
   app: {
     file: "App.tsx",
-    code: `import { useRef } from "react";
+    code: `import { useRef, useState } from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
 import {
   Map, Camera, Marker, ViewAnnotation, Callout,
@@ -426,6 +426,8 @@ ${fmtLugares}
 
 export default function App() {
   const camera = useRef<CameraRef>(null);
+  const [morro, setMorro] = useState<LngLat>([${MORRO.join(", ")}]);
+  const [evento, setEvento] = useState("");
 
   const voarPara = (lngLat: LngLat) =>
     camera.current?.flyTo({ center: lngLat, zoom: 14, duration: 4000 });
@@ -445,14 +447,23 @@ export default function App() {
           </Marker>
         ))}
 
-        {/* ViewAnnotation: arrastável e com balão (Callout) */}
-        <ViewAnnotation id="morro" lngLat={[${MORRO.join(", ")}]}
+        {/* ViewAnnotation: arrastável, selecionável e com balão (Callout).
+            No Android vira uma imagem: leve, mas sem botões dentro */}
+        <ViewAnnotation id="morro" lngLat={morro} anchor="bottom"
+          title="Morro Santo Antônio" snippet="Mirante"
           draggable
-          onDragEnd={(e) => console.log(e.nativeEvent.lngLat)}>
-          <View style={styles.pin} />
-          <Callout title="Morro Santo Antônio" />
+          onSelect={() => setEvento("onSelect")}
+          onDeselect={() => setEvento("onDeselect")}
+          onDragStart={() => setEvento("onDragStart")}
+          onDrag={(e) => setEvento(\`onDrag \${e.nativeEvent.lngLat}\`)}
+          onDragEnd={(e) => setMorro(e.nativeEvent.lngLat)}>
+          <View style={styles.mirante}><Text style={styles.verde}>Mirante</Text></View>
+          <Callout title="Morro Santo Antônio — me arraste!"
+            contentStyle={styles.balao} titleStyle={styles.verde} />
         </ViewAnnotation>
       </Map>
+
+      <Text>{evento}</Text>
 
       {/* Um botão por cidade */}
       {LUGARES.map((l) => (
@@ -471,6 +482,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   pin: { backgroundColor: "#fff", padding: 6, borderRadius: 8, borderWidth: 2, borderColor: "#e11d48" },
+  mirante: { backgroundColor: "#fff", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, borderWidth: 1.5, borderColor: "#16a34a" },
+  verde: { color: "#166534", fontSize: 12 },
+  balao: { borderRadius: 8, padding: 8 },
 });`,
   },
   web: {
@@ -493,11 +507,21 @@ for (const l of LUGARES) {
 
 // Botões de cidade: <button onclick="voarPara([-45.3578, -23.7774])">Ilhabela</button>
 
-// Marcador arrastável
-const morro = new maplibregl.Marker({ color: "#16a34a", draggable: true })
+// O papel do ViewAnnotation: elemento próprio, arrastável e com balão
+const el = document.createElement("div");
+el.className = "mirante";               // visual definido no CSS
+el.textContent = "Mirante";
+const balao = new maplibregl.Popup({ offset: 40, className: "balao" })
+  .setHTML("<b>Morro Santo Antônio</b><br>me arraste!");
+const morro = new maplibregl.Marker({ element: el, anchor: "bottom", draggable: true })
   .setLngLat([${MORRO.join(", ")}])
+  .setPopup(balao)                      // clique abre/fecha = selecionar
   .addTo(map);
-morro.on("dragend", () => console.log(morro.getLngLat()));
+balao.on("open", () => console.log("selecionado"));     // ≈ onSelect
+balao.on("close", () => console.log("deselecionado"));  // ≈ onDeselect
+morro.on("dragstart", () => console.log("começou"));    // ≈ onDragStart
+morro.on("drag", () => console.log(morro.getLngLat())); // ≈ onDrag
+morro.on("dragend", () => console.log("solto"));        // ≈ onDragEnd
 
 // Funções de câmera ficam no próprio map
 map.easeTo({ pitch: 60, zoom: 16, duration: 1500 });       // inclinar
@@ -509,9 +533,11 @@ map.easeTo({ pitch: 0, bearing: 0, duration: 1000 });      // vista de cima`,
 
 function CameraMap() {
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [marker, setMarker] = useState("Clique em um pino vermelho");
+  const [va, setVa] = useState("Clique e arraste o Mirante verde");
   return (
     <LiveMap
-      badge={<><MapPinned /> Clique nos marcadores · arraste o verde</>}
+      badge={<><MapPinned /> Pinos vermelhos = Marker · Mirante = ViewAnnotation</>}
       options={{ style: LIBERTY, center: CARAGUA, zoom: 10 }}
       setup={(m) => {
         mapRef.current = m;
@@ -520,19 +546,36 @@ function CameraMap() {
             .setLngLat(l.lngLat)
             .setPopup(new maplibregl.Popup({ offset: 30 }).setText(l.nome))
             .addTo(m);
-          marker.getElement().addEventListener("click", () => m.flyTo({ center: l.lngLat, zoom: 14, pitch: 0, bearing: 0, duration: 4000 }));
+          marker.getElement().addEventListener("click", () => {
+            setMarker(`onPress → ${l.nome} (voando até lá)`);
+            m.flyTo({ center: l.lngLat, zoom: 14, pitch: 0, bearing: 0, duration: 4000 });
+          });
         }
-        const morro = new maplibregl.Marker({ color: "#16a34a", draggable: true })
+
+        // ViewAnnotation: elemento próprio, arrastável, selecionável e com balão estilizado
+        const el = document.createElement("div");
+        el.className = "va-pin";
+        el.innerHTML = renderToStaticMarkup(<Binoculars size={12} strokeWidth={2.2} />) + "<span>Mirante</span>";
+        const fmt = (p: maplibregl.LngLat) => `${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`;
+        const balao = new maplibregl.Popup({ offset: 40, className: "va-callout", closeButton: false });
+        const morro = new maplibregl.Marker({ element: el, anchor: "bottom", draggable: true })
           .setLngLat(MORRO)
-          .setPopup(new maplibregl.Popup({ offset: 30 }).setText("Morro Santo Antônio — me arraste!"))
+          .setPopup(balao)
           .addTo(m);
-        morro.on("dragend", () => {
-          const p = morro.getLngLat();
-          morro.getPopup()?.setText(`Solto em ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`);
-        });
+        const texto = () => balao.setHTML(`<b>Morro Santo Antônio</b><span>me arraste!</span><code>${fmt(morro.getLngLat())}</code>`);
+        texto();
+        balao.on("open", () => { el.classList.add("on"); setVa("onSelect → balão aberto"); });
+        balao.on("close", () => { el.classList.remove("on"); setVa("onDeselect → balão fechado"); });
+        morro.on("dragstart", () => setVa("onDragStart"));
+        morro.on("drag", () => { setVa(`onDrag → ${fmt(morro.getLngLat())}`); texto(); });
+        morro.on("dragend", () => { setVa(`onDragEnd → solto em ${fmt(morro.getLngLat())}`); texto(); });
         return () => { mapRef.current = null; };
       }}
     >
+      <div className="map-info top">
+        <div><b>Marker · eventos</b>{marker}</div>
+        <div><b>ViewAnnotation · eventos</b>{va}</div>
+      </div>
       <div className="map-buttons">
         {[{ nome: "Caraguatatuba", lngLat: CARAGUA }, ...LUGARES].map((l) => (
           <button key={l.nome} onClick={() => mapRef.current?.flyTo({ center: l.lngLat, zoom: 14, pitch: 0, bearing: 0, duration: 4000 })}><Plane /> {l.nome}</button>
@@ -964,7 +1007,7 @@ export const buildSlides: SlideDef[] = [
     Body: LocationStepSlide,
   },
   stepSlide(3, stepCamera, () => <CameraMap />,
-    "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Arraste o marcador verde. Depois Inclinar 3D e Girar. Marker/ViewAnnotation são Views do React: ótimos para poucos pontos; para milhares, use GeoJSONSource + Layer (passo 5)."),
+    "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Compare os dois: o Marker (pinos vermelhos) só dispara onPress; o ViewAnnotation (Mirante) é selecionável (onSelect/onDeselect abrem o balão), arrastável (onDragStart/onDrag/onDragEnd) e tem Callout estilizável — o painel no topo mostra cada evento. Em troca, no Android o ViewAnnotation é desenhado como imagem: botões dentro dele não funcionam (use Marker para isso). Depois Inclinar 3D e Girar. Para milhares de pontos, use GeoJSONSource + Layer (passo 5)."),
   stepSlide(4, stepEvents, () => <EventsMap />,
     "Clique em uma loja ou rua: o nome vem de queryRenderedFeatures — só funciona porque o mapa é vetorial. Arraste e veja o moveend atualizar."),
   stepSlide(5, stepGeoJson, () => (
