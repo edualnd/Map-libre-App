@@ -1,6 +1,6 @@
 import type { StyleSpecification } from "maplibre-gl";
 import {
-  Bike, Building2, Bus, Mountain,
+  Bike, Building2, Mountain,
   MountainSnow, Satellite, Store, TrainFront, type LucideIcon,
 } from "lucide-react";
 
@@ -86,59 +86,6 @@ const RELIEF_STYLE: StyleSpecification = {
   ],
 };
 
-/**
- * Estilo próprio de transporte sobre os tiles vetoriais do OpenFreeMap.
- * Substitui o ÖPNVKarte, cujo servidor não envia CORS e não abre no navegador.
- */
-const TRANSIT_STYLE: StyleSpecification = {
-  version: 8,
-  glyphs: GLYPHS,
-  sources: {
-    omt: { type: "vector", url: "https://tiles.openfreemap.org/planet" },
-  },
-  layers: [
-    { id: "fundo", type: "background", paint: { "background-color": "#eef0f2" } },
-    { id: "agua", type: "fill", source: "omt", "source-layer": "water", paint: { "fill-color": "#b9d3e8" } },
-    { id: "predios", type: "fill", source: "omt", "source-layer": "building", minzoom: 14, paint: { "fill-color": "#e0e2e6" } },
-    {
-      id: "ruas", type: "line", source: "omt", "source-layer": "transportation",
-      filter: ["in", ["get", "class"], ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary", "minor", "service"]]],
-      paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 18, 12] },
-    },
-    {
-      id: "balsas", type: "line", source: "omt", "source-layer": "transportation",
-      filter: ["==", ["get", "class"], "ferry"],
-      paint: { "line-color": "#2563eb", "line-width": 2.5, "line-dasharray": [2, 1.5] },
-    },
-    {
-      id: "trilhos", type: "line", source: "omt", "source-layer": "transportation",
-      filter: ["in", ["get", "class"], ["literal", ["rail", "transit"]]],
-      paint: { "line-color": "#b91c1c", "line-width": 3 },
-    },
-    {
-      id: "pontos-onibus", type: "circle", source: "omt", "source-layer": "poi",
-      filter: ["==", ["get", "subclass"], "bus_stop"],
-      paint: { "circle-color": "#0d9488", "circle-radius": 6, "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 },
-    },
-    {
-      id: "estacoes", type: "circle", source: "omt", "source-layer": "poi",
-      filter: ["in", ["get", "subclass"], ["literal", ["bus_station", "station", "halt", "ferry_terminal"]]],
-      paint: { "circle-color": "#7c3aed", "circle-radius": 8, "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5 },
-    },
-    {
-      id: "bairros", type: "symbol", source: "omt", "source-layer": "place",
-      layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Regular"], "text-size": 12, "text-transform": "uppercase" },
-      paint: { "text-color": "#8a94a6", "text-halo-color": "#ffffff", "text-halo-width": 1 },
-    },
-    {
-      id: "nomes-estacoes", type: "symbol", source: "omt", "source-layer": "poi",
-      filter: ["in", ["get", "subclass"], ["literal", ["bus_station", "station", "halt", "ferry_terminal"]]],
-      layout: { "text-field": ["get", "name"], "text-font": ["Noto Sans Bold"], "text-size": 13, "text-offset": [0, 1.3], "text-anchor": "top" },
-      paint: { "text-color": "#4c1d95", "text-halo-color": "#ffffff", "text-halo-width": 1.5 },
-    },
-  ],
-};
-
 /* ------------------------------------------------------------------ */
 /* As demonstrações: vetorial → elevação → raster                     */
 /* ------------------------------------------------------------------ */
@@ -183,18 +130,6 @@ export const DEMOS: Demo[] = [
     style: { url: `${OFM}/liberty` },
     view: { center: CARAGUA, zoom: 16.5, pitch: 60, bearing: -30 },
     notes: "Centro de Caraguatatuba em perspectiva. Gire com o botão direito do mouse. Onde o OSM não tem altura cadastrada, o prédio usa uma altura padrão — mais um motivo para contribuir com o mapa.",
-  },
-  {
-    id: "transit", label: "Transporte", Icon: Bus, kind: "vetorial", source: "OpenFreeMap · estilo próprio",
-    purpose: "Mobilidade urbana: pontos de ônibus, rodoviária, terminais de balsa e trilhos.",
-    bullets: [
-      "Estilo <b>próprio</b> sobre os tiles vetoriais do OpenFreeMap: só água, ruas e o que é transporte.",
-      "Pontos e estações vêm da camada <code class='i'>poi</code>, filtrados por <code class='i'>subclass</code> (<code class='i'>bus_stop</code>, <code class='i'>bus_station</code>…).",
-      "Balsas e trilhos vêm da camada <code class='i'>transportation</code>. O mesmo estilo funciona no app e na web.",
-    ],
-    style: { object: TRANSIT_STYLE },
-    view: { center: [-45.42, -23.625], zoom: 14 },
-    notes: "Mostre que o estilo é um objeto escrito à mão: cada camada é um filtro sobre os mesmos tiles vetoriais. Pontos verdes = pontos de ônibus; roxo = rodoviária, estações e terminais de balsa (afaste o zoom até São Sebastião para ver a balsa de Ilhabela).",
   },
   {
     id: "relief", label: "Relevo", Icon: MountainSnow, kind: "raster-dem", source: "AWS Terrain Tiles + hillshade",
