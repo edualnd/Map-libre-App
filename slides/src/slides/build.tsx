@@ -375,6 +375,8 @@ function LocationMap({ opts, setOpts }: { opts: LocOpts; setOpts: (o: LocOpts) =
       <div className="map-buttons">
         <button onClick={locate}><LocateFixed /> Minha localização</button>
         <button onClick={() => simulate("Simulação.")}><MapPin /> Simular</button>
+        {/* Gira o mapa para a bússola aparecer apontando o norte; clicar nela volta para 0° */}
+        <button onClick={() => { const m = mapRef.current; m?.rotateTo(m.getBearing() + 45, { duration: 1000 }); }}><RotateCw /> Girar</button>
         {(Object.keys(HIDE_CLASS) as (keyof LocOpts)[]).map((k) => (
           <button key={k} className={opts[k] ? "on" : ""} onClick={() => setOpts({ ...opts, [k]: !opts[k] })}>
             <CircleDot /> {k}
@@ -958,7 +960,7 @@ export const buildSlides: SlideDef[] = [
   },
   {
     section: "Passo a passo",
-    notes: "Clique em Minha localização: o navegador pede a permissão. Se ele não conseguir a posição (comum no Chrome do Linux, sem serviço de localização), o slide simula o ponto azul em Caraguatatuba. Troque accuracy, compass, scaleBar e attribution entre true e false: o elemento aparece/some no mapa e o código muda junto (accuracy = círculo com a margem de erro do GPS). No app, a permissão vem do hook useForegroundPermissions e precisa do plugin do expo-location no app.json.",
+    notes: "Clique em Minha localização: o navegador pede a permissão. Se ele não conseguir a posição (comum no Chrome do Linux, sem serviço de localização), o slide simula o ponto azul em Caraguatatuba. Use Girar e mostre a bússola apontando o norte (clicar nela volta para 0°). Troque accuracy, compass, scaleBar e attribution entre true e false: o elemento aparece/some no mapa e o código muda junto (accuracy = círculo com a margem de erro do GPS). No app, a permissão vem do hook useForegroundPermissions e precisa do plugin do expo-location no app.json.",
     Body: LocationStepSlide,
   },
   stepSlide(3, stepCamera, () => <CameraMap />,
