@@ -1,8 +1,8 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import maplibregl from "maplibre-gl";
 import {
-  Anchor, Binoculars, Camera as CameraIcon, Crop, Eye, Footprints, Layers, Landmark, LocateFixed, Map as MapIcon, MapPin, MapPinned,
+  Anchor, Binoculars, Camera as CameraIcon, CircleDot, Crop, Eye, Footprints, Layers, Landmark, LocateFixed, Map as MapIcon, MapPin, MapPinned,
   MousePointerClick, Navigation, Plane, RotateCw, Rotate3d, SunDim, type LucideIcon,
 } from "lucide-react";
 import { CodeTabs } from "../components/Code";
@@ -178,7 +178,13 @@ function CameraStepSlide() {
 /* ------------------------------------------------------------------ */
 /* Passo 2 — <UserLocation> e controles                                */
 /* ------------------------------------------------------------------ */
-const stepLocation: Step = {
+type LocOpts = { accuracy: boolean; compass: boolean; scaleBar: boolean; attribution: boolean };
+
+function locationStep({ accuracy, compass, scaleBar, attribution }: LocOpts): Step {
+  // Atributo booleano do <Map>: ligado fica só o nome; desligado vira nome={false}
+  const prop = (on: boolean, name: string, comment: string) =>
+    `      ${(on ? name : `${name}={false}`).padEnd(18)}// ${on ? comment : `sem ${comment}`}`;
+  return {
   title: "Onde estou: <UserLocation>",
   Icon: LocateFixed,
   purpose: "O ponto azul do usuário e os controles do mapa. No app, a permissão de GPS vem do hook do expo-location.",
@@ -208,17 +214,20 @@ export default function App() {
   return (
     <Map style={{ flex: 1 }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
-      compass           // bússola (aparece ao girar)
-      scaleBar          // barra de escala
-      attribution       // créditos dos dados
+${prop(compass, "compass", "bússola (aparece ao girar)")}
+${prop(scaleBar, "scaleBar", "barra de escala")}
+${prop(attribution, "attribution", "créditos dos dados")}
     >
       <Camera
         initialViewState={{ center: ${C}, zoom: 13 }} // Caraguatatuba
         trackUserLocation={permitido ? "default" : undefined}
       />
-      {/* accuracy={false}: sem o círculo de precisão, que fica
+${accuracy
+  ? `      {/* accuracy: círculo em volta do ponto = margem de erro do GPS */}
+      {permitido && <UserLocation accuracy heading />}`
+  : `      {/* accuracy={false}: sem o círculo de precisão, que fica
           enorme quando o GPS ainda está impreciso */}
-      {permitido && <UserLocation accuracy={false} heading />}
+      {permitido && <UserLocation accuracy={false} heading />}`}
     </Map>
   );
 }
@@ -232,12 +241,17 @@ export default function App() {
   container: "map",
   style: "https://tiles.openfreemap.org/styles/liberty",
   center: ${C},   // Caraguatatuba
-  zoom: 13,
+  zoom: 13,${attribution ? "" : `
+  attributionControl: false, // sem os créditos dos dados`}
 });
 
 // Na web, controles são adicionados com addControl()
-map.addControl(new maplibregl.NavigationControl()); // zoom + bússola
-map.addControl(new maplibregl.ScaleControl());      // escala
+${compass
+  ? "map.addControl(new maplibregl.NavigationControl()); // zoom + bússola"
+  : "map.addControl(new maplibregl.NavigationControl({ showCompass: false })); // só zoom"}
+${scaleBar
+  ? "map.addControl(new maplibregl.ScaleControl());      // escala"
+  : "// sem ScaleControl → sem barra de escala"}
 map.addControl(new maplibregl.FullscreenControl()); // tela cheia
 
 // Ponto azul — o navegador pede a permissão sozinho
@@ -245,21 +259,59 @@ map.addControl(new maplibregl.FullscreenControl()); // tela cheia
 const geolocate = new maplibregl.GeolocateControl({
   positionOptions: { enableHighAccuracy: true },
   trackUserLocation: true,   // segue o usuário
-  showAccuracyCircle: false, // sem o círculo de precisão (pode ser enorme)
+${accuracy
+  ? "  showAccuracyCircle: true,  // círculo = margem de erro do GPS"
+  : "  showAccuracyCircle: false, // sem o círculo de precisão (pode ser enorme)"}
 });
 map.addControl(geolocate);
 
 geolocate.on("geolocate", (e) => console.log(e.coords));
 geolocate.on("error", (e) => console.warn("Sem localização:", e.message));`,
   },
+  };
+}
+
+/** Margem de erro usada no ponto simulado (metros). */
+const FAKE_ACCURACY = 250;
+
+/**
+ * Mostra a localização real; se o navegador não conseguir, simula o ponto azul em Caraguatatuba.
+ * Os botões accuracy, compass, scaleBar e attribution ligam/desligam cada elemento (o mapa e o código mudam juntos).
+ */
+function LocationStepSlide() {
+  const [opts, setOpts] = useState<LocOpts>({ accuracy: false, compass: true, scaleBar: true, attribution: true });
+  return <StepSlide n={2} step={locationStep(opts)} map={<LocationMap opts={opts} setOpts={setOpts} />} />;
+}
+
+/** Classe CSS que esconde cada elemento quando a opção está desligada. */
+const HIDE_CLASS: Record<keyof LocOpts, string> = {
+  accuracy: "no-accuracy", compass: "no-compass", scaleBar: "no-scale", attribution: "no-attrib",
+};
+const applyOpts = (m: maplibregl.Map, o: LocOpts) => {
+  for (const k of Object.keys(HIDE_CLASS) as (keyof LocOpts)[]) m.getContainer().classList.toggle(HIDE_CLASS[k], !o[k]);
 };
 
-/** Mostra a localização real; se o navegador não conseguir, simula o ponto azul em Caraguatatuba. */
-function LocationMap() {
+function LocationMap({ opts, setOpts }: { opts: LocOpts; setOpts: (o: LocOpts) => void }) {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const geoRef = useRef<maplibregl.GeolocateControl | null>(null);
   const fakeRef = useRef<maplibregl.Marker | null>(null);
+  const fakeCircleRef = useRef<maplibregl.Marker | null>(null);
   const [status, setStatus] = useState("Clique em “Minha localização”");
+
+  // Os elementos são escondidos por CSS: assim dá para trocar sem recriar os controles
+  useEffect(() => {
+    if (mapRef.current) applyOpts(mapRef.current, opts);
+  }, [opts]);
+
+  /** Ajusta o círculo simulado ao zoom atual (raio em metros → pixels). */
+  const sizeFakeCircle = () => {
+    const m = mapRef.current, c = fakeCircleRef.current;
+    if (!m || !c) return;
+    const p = m.project(CARAGUA);
+    const metersPerPx = m.unproject([p.x + 100, p.y]).distanceTo(m.unproject([p.x, p.y])) / 100;
+    const d = `${((2 * FAKE_ACCURACY) / metersPerPx).toFixed(1)}px`;
+    Object.assign(c.getElement().style, { width: d, height: d });
+  };
 
   const simulate = (why: string) => {
     const m = mapRef.current;
@@ -269,7 +321,15 @@ function LocationMap() {
       el.className = "maplibregl-user-location-dot";
       fakeRef.current = new maplibregl.Marker({ element: el });
     }
+    if (!fakeCircleRef.current) {
+      const el = document.createElement("div");
+      el.className = "maplibregl-user-location-accuracy-circle";
+      fakeCircleRef.current = new maplibregl.Marker({ element: el, pitchAlignment: "map" });
+      m.on("zoom", sizeFakeCircle);
+    }
+    fakeCircleRef.current.setLngLat(CARAGUA).addTo(m);
     fakeRef.current.setLngLat(CARAGUA).addTo(m);
+    sizeFakeCircle();
     m.flyTo({ center: CARAGUA, zoom: 15, duration: 2000 });
     setStatus(`${why} Ponto azul simulado em Caraguatatuba.`);
   };
@@ -281,6 +341,7 @@ function LocationMap() {
     }
     setStatus("Pedindo a localização ao navegador…");
     fakeRef.current?.remove();
+    fakeCircleRef.current?.remove();
     if (!geoRef.current?.trigger()) simulate("Geolocalização indisponível neste navegador.");
   };
 
@@ -290,10 +351,11 @@ function LocationMap() {
       options={{ style: LIBERTY, center: CARAGUA, zoom: 13 }}
       setup={(m) => {
         mapRef.current = m;
+        applyOpts(m, opts);
         const geo = new maplibregl.GeolocateControl({
           positionOptions: { enableHighAccuracy: true, timeout: 8000 },
           trackUserLocation: true,
-          showAccuracyCircle: false,
+          showAccuracyCircle: true, // escondido por CSS quando accuracy = false
           fitBoundsOptions: { maxZoom: 15 },
         });
         geoRef.current = geo;
@@ -304,7 +366,7 @@ function LocationMap() {
           setStatus(`Localização real: ${e.coords.latitude.toFixed(4)}, ${e.coords.longitude.toFixed(4)} (±${Math.round(e.coords.accuracy)} m)`));
         geo.on("error", (e: GeolocationPositionError) =>
           simulate(e.code === 1 ? "Permissão negada." : "O navegador não conseguiu a posição."));
-        return () => { mapRef.current = null; geoRef.current = null; fakeRef.current = null; };
+        return () => { mapRef.current = null; geoRef.current = null; fakeRef.current = null; fakeCircleRef.current = null; };
       }}
     >
       <div className="map-info top">
@@ -312,7 +374,12 @@ function LocationMap() {
       </div>
       <div className="map-buttons">
         <button onClick={locate}><LocateFixed /> Minha localização</button>
-        <button onClick={() => simulate("Simulação.")}><MapPin /> Simular em Caraguatatuba</button>
+        <button onClick={() => simulate("Simulação.")}><MapPin /> Simular</button>
+        {(Object.keys(HIDE_CLASS) as (keyof LocOpts)[]).map((k) => (
+          <button key={k} className={opts[k] ? "on" : ""} onClick={() => setOpts({ ...opts, [k]: !opts[k] })}>
+            <CircleDot /> {k}
+          </button>
+        ))}
       </div>
     </LiveMap>
   );
@@ -486,7 +553,7 @@ const stepEvents: Step = {
   purpose: "Saber onde o usuário tocou, o que está desenhado ali e para onde ele moveu o mapa.",
   items: [
     { name: "onPress · onLongPress", kind: "evento", desc: "Toque: lngLat e point (pixel)" },
-    { name: "onRegionDidChange", kind: "evento", desc: "Terminou de mover: center, zoom…" },
+    { name: "onRegionDidChange", kind: "evento", desc: "Disparado quando o mapa para de mover" },
     { name: "queryRenderedFeatures()", kind: "função", desc: "O que está desenhado em um pixel" },
     { name: "getCenter() · getZoom()", kind: "função", desc: "Lê o estado atual via ref do <Map>" },
     { name: "touchRotate · dragPan", kind: "atributo", desc: "Liga/desliga gestos (touchPitch, touchZoom…)" },
@@ -513,8 +580,10 @@ export default function App() {
           setInfo(\`\${f?.properties?.name ?? "sem nome"} · \${lngLat[1].toFixed(4)}, \${lngLat[0].toFixed(4)}\`);
         }}
         onLongPress={(e) => Alert.alert("Toque longo", e.nativeEvent.lngLat.join(", "))}
-        onRegionDidChange={(e) => {
-          const { center, zoom } = e.nativeEvent;
+        onRegionDidChange={async () => {
+          // Lê o estado atual pela ref do <Map> (no app, devolvem Promise)
+          const center = await map.current?.getCenter(); // [lng, lat]
+          const zoom = await map.current?.getZoom();
           console.log("moveu para", center, "zoom", zoom);
         }}
       >
@@ -887,8 +956,11 @@ export const buildSlides: SlideDef[] = [
     notes: "Comece pelo zoom (5 → 17) e pitch (0 → 60), mostrando o código mudando. Troque o center: a câmera voa. Coordenadas sempre em [longitude, latitude]. Etiquetas: azul = componente, verde = atributo, roxo = função, laranja = evento.",
     Body: CameraStepSlide,
   },
-  stepSlide(2, stepLocation, () => <LocationMap />,
-    "Clique em Minha localização: o navegador pede a permissão. Se ele não conseguir a posição (comum no Chrome do Linux, sem serviço de localização), o slide simula o ponto azul em Caraguatatuba. No app, a permissão vem do hook useForegroundPermissions e precisa do plugin do expo-location no app.json."),
+  {
+    section: "Passo a passo",
+    notes: "Clique em Minha localização: o navegador pede a permissão. Se ele não conseguir a posição (comum no Chrome do Linux, sem serviço de localização), o slide simula o ponto azul em Caraguatatuba. Troque accuracy, compass, scaleBar e attribution entre true e false: o elemento aparece/some no mapa e o código muda junto (accuracy = círculo com a margem de erro do GPS). No app, a permissão vem do hook useForegroundPermissions e precisa do plugin do expo-location no app.json.",
+    Body: LocationStepSlide,
+  },
   stepSlide(3, stepCamera, () => <CameraMap />,
     "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Arraste o marcador verde. Depois Inclinar 3D e Girar. Marker/ViewAnnotation são Views do React: ótimos para poucos pontos; para milhares, use GeoJSONSource + Layer (passo 5)."),
   stepSlide(4, stepEvents, () => <EventsMap />,

@@ -145,6 +145,11 @@ table.t code { font-family: "JetBrains Mono", monospace; font-size: .9em; color:
 .map-buttons button { display: inline-flex; align-items: center; gap: .4rem; font: 600 .9rem "Inter", sans-serif; border: 1px solid var(--line); background: rgba(19,26,46,.94); color: var(--ink); padding: .5rem .85rem; border-radius: .55rem; cursor: pointer; box-shadow: 0 .15rem .5rem rgba(0,0,0,.35); }
 .map-buttons button svg { width: 1rem; height: 1rem; }
 .map-buttons button:hover { background: var(--accent); color: #fff; }
+.map-buttons button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.no-accuracy .maplibregl-user-location-accuracy-circle { display: none; }
+.no-compass .maplibregl-ctrl-compass,
+.no-scale .maplibregl-ctrl-scale,
+.no-attrib .maplibregl-ctrl-attrib { display: none; }
 
 /* ---------- Demo ---------- */
 .demo-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 1.8rem; flex: 1; min-height: 0; }
