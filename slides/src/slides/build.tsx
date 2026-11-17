@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import maplibregl from "maplibre-gl";
 import {
   Binoculars, Camera as CameraIcon, CircleDot, Crop, Footprints, Landmark, LocateFixed, Map as MapIcon, MapPin, MapPinned,
-  Hand, MousePointerClick, Navigation, Search, Plane, RotateCw, Rotate3d, type LucideIcon,
+  MousePointerClick, Navigation, Plane, RotateCw, Rotate3d, type LucideIcon,
 } from "lucide-react";
 import { CodeTabs } from "../components/Code";
 import { LiveMap } from "../components/LiveMap";
@@ -399,13 +399,7 @@ const LUGARES: { nome: string; lngLat: [number, number] }[] = [
 const LITORAL_NORTE: [[number, number], [number, number]] = [[-45.75, -23.95], [-44.95, -23.35]];
 const fmtLugares = LUGARES.map((l) => `  { nome: "${l.nome}", lngLat: [${l.lngLat.join(", ")}] },`).join("\n");
 
-type Gestos = { dragPan: boolean; touchRotate: boolean };
-
-function markersStep({ dragPan, touchRotate }: Gestos): Step {
-  // Gesto ligado = padrão (não precisa escrever); desligado = prop={false}
-  const gesto = (on: boolean, name: string, comment: string) =>
-    on ? `        // ${name} ligado (padrão): ${comment}` : `        ${name}={false}`.padEnd(30) + `// sem ${comment}`;
-  return {
+const markersStep: Step = {
   title: "Câmera e marcadores",
   Icon: Plane,
   purpose: "Marcadores presos a coordenadas e, com uma ref para a <Camera>, animações: escolha uma cidade ou toque em um marcador e a câmera voa até lá.",
@@ -415,7 +409,6 @@ function markersStep({ dragPan, touchRotate }: Gestos): Step {
     { name: "flyTo()", kind: "função", desc: "Efeito avião: afasta, viaja e aproxima" },
     { name: "setStop() · easeTo()", kind: "função", desc: "Muda pitch, bearing ou zoom com transição" },
     { name: "fitBounds()", kind: "função", desc: "Enquadra um retângulo: [oeste, sul, leste, norte]" },
-    { name: "touchRotate · dragPan", kind: "atributo", desc: "Liga/desliga gestos (touchPitch, touchZoom…)" },
   ],
   app: {
     file: "App.tsx",
@@ -438,10 +431,7 @@ export default function App() {
   return (
     <View style={{ flex: 1 }}>
       <Map style={{ flex: 1 }}
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
-${gesto(dragPan, "dragPan", "arrastar o mapa com um dedo")}
-${gesto(touchRotate, "touchRotate", "girar com dois dedos")}
-      >
+        mapStyle="https://tiles.openfreemap.org/styles/liberty">
         <Camera ref={camera}
           initialViewState={{ center: ${C}, zoom: 10 }} />
 
@@ -494,36 +484,21 @@ for (const l of LUGARES) {
 
 // Botões de cidade: <button onclick="voarPara([-45.3578, -23.7774])">Ilhabela</button>
 
-// Gestos: cada um é um handler com enable()/disable()
-${dragPan ? "// map.dragPan ligado (padrão)" : "map.dragPan.disable();                 // sem arrastar"}
-${touchRotate ? "// rotação ligada (padrão)" : "map.dragRotate.disable();              // sem girar com o mouse\nmap.touchZoomRotate.disableRotation(); // sem girar com dois dedos"}
-
 // Funções de câmera ficam no próprio map
 map.easeTo({ pitch: 60, zoom: 16, duration: 1500 });       // inclinar
 map.rotateTo(map.getBearing() + 180, { duration: 3000 });  // girar
 map.fitBounds([[${LITORAL_NORTE[0].join(", ")}], [${LITORAL_NORTE[1].join(", ")}]]);  // Litoral Norte
 map.easeTo({ pitch: 0, bearing: 0, duration: 1000 });      // vista de cima`,
   },
-  };
-}
+};
 
 function CameraStepSlide3() {
-  const [g, setG] = useState<Gestos>({ dragPan: true, touchRotate: true });
-  return <StepSlide n={3} step={markersStep(g)} map={<CameraMap g={g} setG={setG} />} />;
+  return <StepSlide n={3} step={markersStep} map={<CameraMap />} />;
 }
 
-function CameraMap({ g, setG }: { g: Gestos; setG: (g: Gestos) => void }) {
+function CameraMap() {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [marker, setMarker] = useState("Clique em um marcador");
-
-  // Liga/desliga os gestos no mapa ao vivo
-  useEffect(() => {
-    const m = mapRef.current;
-    if (!m) return;
-    if (g.dragPan) m.dragPan.enable(); else m.dragPan.disable();
-    if (g.touchRotate) { m.dragRotate.enable(); m.touchZoomRotate.enableRotation(); }
-    else { m.dragRotate.disable(); m.touchZoomRotate.disableRotation(); }
-  }, [g]);
 
   return (
     <LiveMap
@@ -555,99 +530,9 @@ function CameraMap({ g, setG }: { g: Gestos; setG: (g: Gestos) => void }) {
         <button onClick={() => { const m = mapRef.current; m?.rotateTo(m.getBearing() + 180, { duration: 3000 }); }}><RotateCw /> Girar 180°</button>
         <button onClick={() => mapRef.current?.fitBounds(LITORAL_NORTE, { pitch: 0, bearing: 0 })}><Crop /> Litoral Norte</button>
         <button onClick={() => mapRef.current?.easeTo({ pitch: 0, bearing: 0, duration: 1000 })}><Navigation /> Vista de cima</button>
-        {(["dragPan", "touchRotate"] as const).map((k) => (
-          <button key={k} className={g[k] ? "on" : ""} onClick={() => setG({ ...g, [k]: !g[k] })}><Hand /> {k}</button>
-        ))}
       </div>
     </LiveMap>
   );
-}
-
-/* ------------------------------------------------------------------ */
-/* Complemento do passo 3 — queryRenderedFeatures()                    */
-/* ------------------------------------------------------------------ */
-const queryStep: Step = {
-  title: "O que tem aqui? queryRenderedFeatures()",
-  Icon: Search,
-  purpose: "Pergunta ao mapa o que está desenhado em um pixel da tela: devolve as features com geometry e properties. Só existe porque o mapa é vetorial.",
-  items: [
-    { name: "queryRenderedFeatures(point)", kind: "função", desc: "Features desenhadas naquele pixel" },
-    { name: "onPress", kind: "evento", desc: "Entrega o point (pixel) e o lngLat do toque" },
-  ],
-  app: {
-    file: "App.tsx",
-    code: `import { useRef, useState } from "react";
-import { Text, View } from "react-native";
-import { Map, Camera, type MapRef } from "@maplibre/maplibre-react-native";
-
-export default function App() {
-  const map = useRef<MapRef>(null); // a consulta é um método da ref
-  const [info, setInfo] = useState("Toque no mapa");
-
-  return (
-    <View style={{ flex: 1 }}>
-      <Map ref={map} style={{ flex: 1 }}
-        mapStyle="https://tiles.openfreemap.org/styles/liberty"
-        onPress={async (e) => {
-          const { point, lngLat } = e.nativeEvent; // pixel + [lng, lat]
-          const features = await map.current?.queryRenderedFeatures(point);
-          const f = features?.find((f) => f.properties?.name);
-          setInfo(\`\${f?.properties?.name ?? "sem nome"} · \` +
-            \`\${lngLat[1].toFixed(4)}, \${lngLat[0].toFixed(4)}\`);
-        }}
-      >
-        <Camera initialViewState={{ center: ${C}, zoom: 16 }} />
-      </Map>
-      <Text>{info}</Text>
-    </View>
-  );
-}`,
-  },
-  web: {
-    file: "mapa.js",
-    code: `const map = new maplibregl.Map({
-  container: "map",
-  style: "https://tiles.openfreemap.org/styles/liberty",
-  center: ${C},
-  zoom: 16,
-});
-
-map.on("click", (e) => {
-  // e.point = pixel clicado · e.lngLat = coordenada
-  const features = map.queryRenderedFeatures(e.point);
-  const f = features.find((f) => f.properties.name);
-
-  info.textContent = \`\${f?.properties.name ?? "sem nome"} · \` +
-    \`\${e.lngLat.lat.toFixed(4)}, \${e.lngLat.lng.toFixed(4)}\`;
-});`,
-  },
-};
-
-function QueryStepSlide() {
-  const [onde, setOnde] = useState("Clique em uma rua, loja ou bairro");
-
-  const map = (
-    <LiveMap
-      badge={<><Search /> Clique em qualquer lugar do mapa</>}
-      options={{ style: LIBERTY, center: CARAGUA, zoom: 16 }}
-      setup={(m) => {
-        const el = document.createElement("div");
-        el.className = "query-dot";
-        const dot = new maplibregl.Marker({ element: el });
-        m.on("click", (e) => {
-          const features = m.queryRenderedFeatures(e.point);
-          const f = features.find((x) => x.properties?.name);
-          dot.setLngLat(e.lngLat).addTo(m);
-          setOnde(`${f?.properties?.name ?? "sem nome"} · ${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`);
-        });
-      }}
-    >
-      <div className="map-info top">
-        <div><b>nome · coordenadas</b>{onde}</div>
-      </div>
-    </LiveMap>
-  );
-  return <StepSlide step={queryStep} map={map} tag={<Tag Icon={Footprints}>Passo 3 · consulta</Tag>} />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -874,12 +759,7 @@ export const buildSlides: SlideDef[] = [
   {
     section: "Passo a passo",
     Body: CameraStepSlide3,
-    notes: "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Depois Inclinar 3D e Girar. Desligue dragPan e tente arrastar; desligue touchRotate e tente girar com o botão direito — o código muda junto. Para milhares de pontos, use GeoJSONSource + Layer (passo 4).",
-  },
-  {
-    section: "Passo a passo",
-    Body: QueryStepSlide,
-    notes: "Clique em ruas, lojas e bairros: o painel mostra o nome e as coordenadas do clique. Só funciona porque o mapa é vetorial: num raster não há o que consultar.",
+    notes: "Use os botões de cidade (Ilhabela, São Sebastião…) ou clique num marcador: popup + flyTo. Depois Litoral Norte para enquadrar tudo. Depois Inclinar 3D e Girar. Para milhares de pontos, use GeoJSONSource + Layer (passo 4).",
   },
   stepSlide(4, stepGeoJson, () => (
     <LiveMap badge={<><MousePointerClick /> Clique em um ponto</>} options={{ style: `${OFM}/positron`, ...PONTOS_VIEW }} setup={setupPontos} />
